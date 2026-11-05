@@ -734,3 +734,23 @@ body.has-modal { overflow: hidden; }
 @media (prefers-contrast: more) {
   :root { --color-border: var(--neutral-300); --color-border-strong: var(--neutral-500); --color-text-secondary: var(--neutral-700); }
 }
+
+/* ---------- Personal-first sharing ------------------------------------ */
+.principle { display: flex; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-accent-subtle); }
+.principle > .icon { color: var(--color-accent-text); margin-top: 2px; }
+.principle > div { display: flex; flex-direction: column; gap: 4px; }
+.personal-note { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3); margin-bottom: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-muted); }
+.personal-note .icon { margin-top: 1px; color: var(--color-text-tertiary); }
+.collection-aside .people { margin-top: var(--space-2); }
+.switch--block { align-items: flex-start; margin: 0; }
+.switch--block .switch__track { margin-top: 2px; }
+.switch--block > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.switch--block strong { font: var(--text-label); }
+.switch--block small { font: var(--text-caption); color: var(--color-text-secondary); }
+.suggest-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.suggest-item { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.suggest-item.is-protected { background: var(--color-surface-muted); }
+.suggest-item.is-done { opacity: .7; }
+.suggest-item__actions { display: flex; gap: var(--space-2); align-self: flex-end; }
+.diff del { color: var(--color-danger-text); background: var(--color-danger-bg); text-decoration: line-through; padding: 0 4px; border-radius: 4px; }
+.diff ins { color: var(--color-success-text); background: var(--color-success-bg); text-decoration: none; padding: 0 4px; border-radius: 4px; }

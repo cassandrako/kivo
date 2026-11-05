@@ -101,10 +101,10 @@
 
   const sourceBadge = (source) => {
     const map = {
-      original: ["Original", "badge--neutral", "check"],
-      shared: ["Shared with you", "badge--sage", "users"],
-      "personal-copy": ["Personal copy", "badge--accent", "fork"],
-      modified: ["Modified copy", "badge--peach", "edit"],
+      original: ["Created by you", "badge--neutral", "check"],
+      shared: ["Your copy", "badge--sage", "fork"],
+      "personal-copy": ["Your copy · edited", "badge--accent", "fork"],
+      modified: ["Your copy · edited", "badge--peach", "edit"],
     };
     const [label, cls, ic] = map[source] || map.original;
     return `<span class="badge ${cls}">${icon(ic, 12)}${label}</span>`;
@@ -259,7 +259,7 @@
           <ul class="suggestion-list">
             <li><a href="#/collection/bio-gly">${icon("target", 18)}<span><strong>Practice glycolysis regulation</strong><small>Missed 9 times this week · Biochemistry</small></span>${icon("chevronRight", 16)}</a></li>
             <li><a href="#/collection/hna-cn">${icon("layers", 18)}<span><strong>Learn 8 new Cranial Nerve cards</strong><small>Trigeminal section · before Exam 2</small></span>${icon("chevronRight", 16)}</a></li>
-            <li><a href="#/collection/hna-pter">${icon("refresh", 18)}<span><strong>Jordan Lee updated Pterygopalatine Fossa</strong><small>3 changes since you last studied</small></span>${icon("chevronRight", 16)}</a></li>
+            <li><a href="#/collection/hna-pter">${icon("refresh", 18)}<span><strong>3 suggested updates for Pterygopalatine Fossa</strong><small>From Jordan Lee’s source · you choose what to accept</small></span>${icon("chevronRight", 16)}</a></li>
           </ul>
         </section>
       </div>`;
@@ -309,7 +309,7 @@
             <span class="sr-only">Filter</span>
             ${icon("filter", 14)}
             <select data-change="library-filter">
-              ${[["all", "All courses"], ["due", "Has reviews due"], ["new", "Has new cards"], ["shared", "Shared with me"]].map(([v, l]) => `<option value="${v}" ${state.libraryFilter === v ? "selected" : ""}>${l}</option>`).join("")}
+              ${[["all", "All courses"], ["due", "Has reviews due"], ["new", "Has new cards"], ["shared", "Copied from classmates"]].map(([v, l]) => `<option value="${v}" ${state.libraryFilter === v ? "selected" : ""}>${l}</option>`).join("")}
             </select>
           </label>
           <label class="select">
@@ -449,7 +449,7 @@
       ${breadcrumb([{ label: "My Library", href: "#/library" }, { label: course.name, href: `#/course/${course.id}` }, { label: col.title }])}
       <header class="page-header page-header--collection">
         <div>
-          <div class="meta-row">${sourceBadge(col.source)}${col.sourceOf ? `<span class="caption">from ${esc(col.sourceOf)}</span>` : ""}</div>
+          <div class="meta-row">${sourceBadge(col.source)}${col.sourceOf ? `<span class="caption">copied from ${esc(col.sourceOf)}</span>` : ""}</div>
           <h1 class="title">${esc(course.name)} — ${esc(col.title)}</h1>
           ${col.description ? `<p class="lede lede--wide">${esc(col.description)}</p>` : ""}
         </div>
@@ -516,19 +516,21 @@
             <div class="tag-row">${(col.tags || []).map((t) => `<span class="tag">#${esc(t)}</span>`).join("")}</div>
           </section>
 
-          ${col.collaborators ? `
+          ${col.copies ? `
           <section class="card" aria-labelledby="sharing-title">
-            <div class="card__head"><h2 id="sharing-title" class="overline">Sharing</h2><button class="link" data-action="open-share" data-id="${col.id}">Manage</button></div>
+            <div class="card__head"><h2 id="sharing-title" class="overline">Sharing</h2><button class="link" data-action="open-share" data-id="${col.id}">Share</button></div>
+            <p class="caption personal-note">${icon("lock", 14)}<span>This collection is yours. Only you can edit it, and your schedule and progress are private.</span></p>
+            <p class="caption"><strong>People with their own copy</strong></p>
             <ul class="people">
-              ${col.collaborators.map((p) => `<li>${avatar(p.initials, "sm")}<span>${esc(p.name)}${p.you ? " (you)" : ""}</span><small>${esc(p.role)}</small></li>`).join("")}
+              ${col.copies.map((p) => `<li>${avatar(p.initials, "sm", p.group ? "avatar--group" : "")}<span>${esc(p.name)}<small>${esc(p.status)}</small></span></li>`).join("")}
             </ul>
             <div class="lineage">
-              <p class="caption"><strong>Lineage</strong></p>
+              <p class="caption"><strong>Where this came from</strong></p>
               <ol class="lineage__list">
-                <li><span class="lineage__dot"></span>Original · Priya Shah · v3.2</li>
-                <li class="is-current"><span class="lineage__dot"></span>Your personal copy · 5 edits</li>
+                <li><span class="lineage__dot"></span>Priya Shah’s source · v3.2</li>
+                <li class="is-current"><span class="lineage__dot"></span>Your copy · ${col.edits.cards} cards reworded, ${col.edits.added} added</li>
               </ol>
-              <p class="caption">Priya published v3.3 yesterday. <button class="link" data-action="review-update">Review 2 changes</button></p>
+              <p class="caption">Priya published 2 changes yesterday. <button class="link" data-action="review-update">Review suggestions</button></p>
             </div>
           </section>` : ""}
         </aside>
@@ -974,7 +976,7 @@
           ${prototypeNote("Intervals here come from a simplified prototype scheduler, not Kivo’s production algorithm.")}
           <div class="stack-h stack-h--center">
             <a class="btn btn--primary btn--lg" href="#/home" data-action="session-done">Back to Home</a>
-            ${collectionById(s.id)?.collaborators || s.id === "today" ? `<button class="btn btn--secondary btn--lg" data-action="open-share" data-id="hna-cn">${icon("share", 16)}Share with study group</button>` : ""}
+            ${collectionById(s.id)?.copies || s.id === "today" ? `<button class="btn btn--secondary btn--lg" data-action="open-share" data-id="hna-cn">${icon("share", 16)}Share with study group</button>` : ""}
           </div>
         </div>
       </div>`;
@@ -993,7 +995,7 @@
       </label>`;
     return `
       <header class="page-header">
-        <div><h1 class="title">Explore</h1><p class="lede">Collections shared by students in your programs. Save a personal copy and keep getting the creator’s updates.</p></div>
+        <div><h1 class="title">Explore</h1><p class="lede">Collections shared by students in your programs. Add any of them as your own copy, then make it yours.</p></div>
       </header>
       <div class="toolbar toolbar--stack" role="search">
         <label class="search search--lg">${icon("search", 18)}<span class="sr-only">Search shared collections</span>
@@ -1029,7 +1031,7 @@
             <span class="caption">Updated ${esc(e.updated)} · ${e.saves.toLocaleString()} saves</span>
             <div class="stack-h">
               <button class="btn btn--ghost btn--sm" data-action="explore-preview" data-id="${e.id}">Preview</button>
-              <button class="btn btn--secondary btn--sm" data-action="explore-save" data-id="${e.id}">${icon("fork", 14)}Save copy</button>
+              <button class="btn btn--secondary btn--sm" data-action="explore-save" data-id="${e.id}">${icon("fork", 14)}Add copy</button>
             </div>
           </div>
         </article>`).join("")}</div>`;
@@ -1123,53 +1125,87 @@
 
   function openShare(id) {
     const col = collectionById(id) || collectionById("hna-cn");
-    const people = col.collaborators || [{ name: "Alex Rivera", initials: "AR", role: "Owner", you: true }];
+    const copies = col.copies || [];
     openModal(`
       <header class="modal__head">
         <div><h2 class="heading">Share “${esc(col.title)}”</h2><p class="caption">${sourceBadge(col.source)} ${col.cards} cards</p></div>
         <button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button>
       </header>
       <div class="modal__body">
+        <div class="principle">
+          ${icon("fork", 18)}
+          <div><p class="body-strong">Everyone gets their own copy</p>
+          <p class="caption">People you share with add an independent copy to their library. They can reword, reorganize and study it their way, and nothing they change affects your version. Their schedule and progress stay private.</p></div>
+        </div>
+
+        ${col.edits ? `
         <fieldset class="share-what">
-          <legend class="field__label">What are you sharing?</legend>
-          <label class="radio-card is-selected"><input type="radio" name="share-what" checked>
-            <span><strong>Your version</strong><small>Includes your 5 edits and 8 added cards. Recipients get updates when you publish changes.</small></span></label>
+          <legend class="field__label">What should they start from?</legend>
+          <label class="radio-card"><input type="radio" name="share-what" checked>
+            <span><strong>Your version</strong><small>Includes your ${col.edits.cards} reworded cards and ${col.edits.added} additions.</small></span></label>
           <label class="radio-card"><input type="radio" name="share-what">
-            <span><strong>Link to Priya’s original</strong><small>Recipients follow the original source. Your personal edits stay private.</small></span></label>
-        </fieldset>
+            <span><strong>Priya’s source</strong><small>They start from the original. Your changes stay private to you.</small></span></label>
+        </fieldset>` : ""}
 
         <div class="field">
-          <label class="field__label" for="invite">Invite people</label>
+          <label class="field__label" for="invite">Send to</label>
           <div class="invite">
-            <input id="invite" placeholder="Name, email or study group" autofocus>
-            <select aria-label="Role for new people"><option>Can view</option><option>Can edit</option></select>
-            <button class="btn btn--primary" data-action="share-invite">Invite</button>
+            <input id="invite" placeholder="Classmate, email or study group" autofocus>
+            <button class="btn btn--primary" data-action="share-invite">Send copy</button>
           </div>
         </div>
 
-        <ul class="people people--modal" id="share-people">
-          ${people.map((p) => `<li>${avatar(p.initials, "sm")}<span><strong>${esc(p.name)}${p.you ? " (you)" : ""}</strong></span>
-            ${p.role === "Owner" ? `<span class="caption">Owner</span>` : `<select aria-label="Role for ${esc(p.name)}"><option ${p.role === "Viewer" ? "selected" : ""}>Can view</option><option ${p.role === "Editor" ? "selected" : ""}>Can edit</option><option>Remove</option></select>`}</li>`).join("")}
-          <li>${avatar("OD", "sm", "avatar--group")}<span><strong>OD1 Anatomy Study Group</strong><small>14 members</small></span><select aria-label="Role for study group"><option>Can view</option><option>Can edit</option></select></li>
-        </ul>
+        <div>
+          <p class="field__label">Already have a copy</p>
+          <ul class="people people--modal" id="share-people">
+            ${copies.map((p) => `<li>${avatar(p.initials, "sm", p.group ? "avatar--group" : "")}<span><strong>${esc(p.name)}</strong><small>${esc(p.status)}</small></span></li>`).join("") || `<li class="caption">Nobody yet.</li>`}
+          </ul>
+        </div>
+
+        <label class="switch switch--block"><input type="checkbox" checked><span class="switch__track"></span>
+          <span><strong>Offer my future changes as suggestions</strong><small>People who follow can accept or skip each change. Their own edits are never overwritten.</small></span></label>
 
         <div class="link-row">
           <span class="link-row__icon">${icon("link", 16)}</span>
           <div class="link-row__body">
-            <label for="link-access" class="body-strong">General access</label>
-            <select id="link-access"><option>Only people invited</option><option selected>Anyone at Pacific College of Optometry</option><option>Anyone with the link</option></select>
+            <label for="link-access" class="body-strong">Who can get a copy from the link</label>
+            <select id="link-access"><option>Only people I send it to</option><option selected>Anyone at Pacific College of Optometry</option><option>Anyone with the link</option></select>
           </div>
-        </div>
-
-        <div class="info-box">
-          ${icon("info", 16)}
-          <p><strong>Viewers</strong> can study and save their own copy. <strong>Editors</strong> can change cards for everyone. Personal copies keep a link to this version so owners can follow updates.</p>
         </div>
       </div>
       <footer class="modal__foot">
         <button class="btn btn--ghost" data-action="copy-link">${icon("copy", 16)}Copy link</button>
         <button class="btn btn--primary" data-action="close-modal">Done</button>
       </footer>`, { label: `Share ${col.title}` });
+  }
+
+  function openSuggestions() {
+    openModal(`
+      <header class="modal__head"><div><h2 class="heading">Suggested updates</h2><p class="caption">From Priya Shah’s source · v3.3</p></div><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
+      <div class="modal__body">
+        <p class="caption">Your copy is yours: nothing changes unless you accept it. Cards you’ve reworded are never overwritten.</p>
+        <ul class="suggest-list">
+          <li class="suggest-item">
+            <span class="badge badge--accent">Corrected answer</span>
+            <p class="body-strong">CN VII · Which ganglion relays parasympathetics to the submandibular gland?</p>
+            <p class="diff"><del>Pterygopalatine ganglion</del> <ins>Submandibular ganglion</ins></p>
+            <div class="suggest-item__actions"><button class="btn btn--ghost btn--sm" data-action="suggestion-skip">Skip</button><button class="btn btn--secondary btn--sm" data-action="suggestion-accept">Accept</button></div>
+          </li>
+          <li class="suggest-item">
+            <span class="badge badge--sage">New card</span>
+            <p class="body-strong">CN VI · Which muscle does the abducens nerve innervate?</p>
+            <p class="caption">Lateral rectus — “LR6”.</p>
+            <div class="suggest-item__actions"><button class="btn btn--ghost btn--sm" data-action="suggestion-skip">Skip</button><button class="btn btn--secondary btn--sm" data-action="suggestion-accept">Accept</button></div>
+          </li>
+          <li class="suggest-item is-protected">
+            <span class="badge badge--neutral">${icon("lock", 12)}You reworded this card</span>
+            <p class="body-strong">CN III · Pupil-sparing palsy vignette</p>
+            <p class="caption">Priya edited the explanation. Your version is kept — compare if you like.</p>
+            <div class="suggest-item__actions"><button class="btn btn--ghost btn--sm" data-action="suggestion-skip">Keep mine</button><button class="btn btn--ghost btn--sm" data-action="suggestion-accept">Use theirs</button></div>
+          </li>
+        </ul>
+      </div>
+      <footer class="modal__foot"><button class="btn btn--primary" data-action="close-modal">Done</button></footer>`, { label: "Suggested updates" });
   }
 
   function openImport(courseId = "hna") {
@@ -1252,9 +1288,9 @@
       <div class="modal__body">
         <div class="creator">${avatar(e.initials)}<div><p class="body-strong">${esc(e.creator)} · ${esc(e.role)}</p><p class="caption">${esc(e.institution)} · updated ${esc(e.updated)}</p></div></div>
         <ul class="preview-cards">${e.preview.map((p, i) => `<li class="flashcard flashcard--mini"><span class="caption">Card ${i + 1}</span><p>${esc(p)}</p></li>`).join("")}</ul>
-        <div class="info-box">${icon("fork", 16)}<p><strong>Save a personal copy</strong> to edit freely. You’ll be notified when ${esc(e.creator.split(" ")[0])} publishes updates and can choose which to accept.</p></div>
+        <div class="info-box">${icon("fork", 16)}<p><strong>This becomes your own collection.</strong> Edit, reorder and study it however works for you. If ${esc(e.creator.split(" ")[0])} improves the source later, you’ll get suggestions you can accept or skip, card by card.</p></div>
       </div>
-      <footer class="modal__foot"><button class="btn btn--ghost" data-action="explore-follow" data-id="${e.id}">${icon("refresh", 16)}Follow without copying</button><button class="btn btn--primary" data-action="explore-save" data-id="${e.id}">${icon("fork", 16)}Save personal copy</button></footer>`,
+      <footer class="modal__foot"><button class="btn btn--ghost" data-action="close-modal">Close</button><button class="btn btn--primary" data-action="explore-save" data-id="${e.id}">${icon("fork", 16)}Add my own copy</button></footer>`,
       { label: e.title, size: "md" });
   }
 
@@ -1383,12 +1419,12 @@
       const input = $("#invite"); const v = input.value.trim();
       if (!v) { input.focus(); input.setAttribute("aria-invalid", "true"); return; }
       const li = document.createElement("li");
-      li.innerHTML = `${avatar(v.slice(0, 2).toUpperCase(), "sm")}<span><strong>${esc(v)}</strong><small>Invite pending</small></span><select aria-label="Role for ${esc(v)}"><option>Can view</option><option>Can edit</option></select>`;
+      li.innerHTML = `${avatar(v.slice(0, 2).toUpperCase(), "sm")}<span><strong>${esc(v)}</strong><small>Copy sent · waiting for them to add it</small></span>`;
       $("#share-people").appendChild(li); input.value = ""; input.removeAttribute("aria-invalid");
-      toast(`Invited ${v}`, { tone: "success" });
+      toast(`Sent ${v} their own copy`, { tone: "success" });
     },
     "copy-link": () => { try { navigator.clipboard?.writeText("https://kivo.app/s/arivera/cranial-nerves"); } catch { /* ignore */ } toast("Link copied", { tone: "success" }); },
-    "review-update": () => toast("Priya’s v3.3: 1 corrected answer (CN VII), 1 new card. Your edits are kept.", { action: "Accept both", onAction: () => toast("Update merged into your copy", { tone: "success" }) }),
+    "review-update": () => openSuggestions(),
     "open-import": (el) => openImport(el.dataset.course),
     "import-next": () => state._importRender?.render2(),
     "import-accept": () => {
@@ -1441,8 +1477,9 @@
     "drill-weak": () => { const id = state.session.id; state.session = null; navigate(`#/study/${id}`); toast("Drilling cards you rated Again or Hard"); },
     "clear-explore": () => { state.exploreQuery = ""; state.exploreFilters = { program: "", course: "", topic: "", institution: "" }; render(); },
     "explore-preview": (el) => openExplorePreview(el.dataset.id),
-    "explore-save": (el) => { closeModal(true); const e = D.explore.find((x) => x.id === el.dataset.id); toast(`Saved a personal copy of “${e.title}” to My Library`, { tone: "success", action: "Open", onAction: () => navigate("#/library") }); },
-    "explore-follow": (el) => { closeModal(); const e = D.explore.find((x) => x.id === el.dataset.id); toast(`Following ${e.creator}’s collection — you’ll see updates on Home`, { tone: "success" }); },
+    "explore-save": (el) => { closeModal(true); const e = D.explore.find((x) => x.id === el.dataset.id); toast(`Added your own copy of “${e.title}” to My Library`, { tone: "success", action: "Open", onAction: () => navigate("#/library") }); },
+    "suggestion-accept": (el) => { el.closest(".suggest-item").classList.add("is-done"); el.closest(".suggest-item__actions").innerHTML = `<span class="badge badge--success">${icon("check", 12)}Added to your copy</span>`; },
+    "suggestion-skip": (el) => { el.closest(".suggest-item").classList.add("is-done"); el.closest(".suggest-item__actions").innerHTML = `<span class="badge badge--neutral">Skipped</span>`; },
   };
 
   function refreshBuilderPreview() { const p = $("#builder-preview"); if (p) p.innerHTML = builderPreview(); }

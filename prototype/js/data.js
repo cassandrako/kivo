@@ -93,7 +93,7 @@ window.KIVO_DATA = (() => {
       exam: "Exam 2", topic: "Cranial nerves I–XII",
       description: "Origins, foramina, functions and classic lesion presentations of all twelve cranial nerves, with emphasis on CN III, IV and VI for optometry.",
       creator: { name: "Priya Shah", initials: "PS", role: "OD2 · Course TA" },
-      source: "personal-copy", sourceOf: "Priya Shah’s original",
+      source: "personal-copy", sourceOf: "Priya Shah’s source",
       cards: 64, due: 12, newCards: 8, updated: "Nov 3, 2026", created: "Sep 18, 2026",
       tags: ["neuro", "high-yield", "exam-2"], sections: [
         { name: "Overview", count: 8 },
@@ -107,11 +107,14 @@ window.KIVO_DATA = (() => {
       ],
       cardList: cnCards,
       retention: 0.86,
-      collaborators: [
-        { name: "Alex Rivera", initials: "AR", role: "Owner", you: true },
-        { name: "Jordan Lee", initials: "JL", role: "Editor" },
-        { name: "Sam Okafor", initials: "SO", role: "Viewer" },
+      // Kivo is personal-first: nobody co-edits this collection. People who
+      // received it hold their own independent copy and may follow updates.
+      copies: [
+        { name: "Jordan Lee", initials: "JL", status: "Has a copy · following your updates" },
+        { name: "Sam Okafor", initials: "SO", status: "Has a copy · not following" },
+        { name: "OD1 Anatomy Study Group", initials: "OD", group: true, status: "14 members · 9 copies made" },
       ],
+      edits: { cards: 5, added: 8 },
     },
     { id: "hna-orbit", courseId: "hna", title: "Bony Orbit & Foramina", unit: "Unit 1 · Skull", lecture: "Lecture 02",
       exam: "Exam 1", topic: "Orbit", creator: { name: "Alex Rivera", initials: "AR" }, source: "original",

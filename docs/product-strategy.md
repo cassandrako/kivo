@@ -27,6 +27,35 @@ The last point matters most. Two of the best-supported learning effects are **re
 5. **Trustworthy content.** Cards come from students, classmates and course TAs, with visible attribution and version history. AI is not a default content source. If added later, it should *assist* (for example, flag an ambiguous card or suggest a cloze split) and never silently write answers.
 6. **Honest progress.** Insights show *estimated retention* and what to study next. The UI never presents them as mastery or exam readiness.
 
+## The core loop is Anki's: spaced active recall
+
+Everything in Kivo serves one loop: **see a prompt → retrieve from memory → reveal → rate honestly → the card returns just before you'd forget it.**
+
+Why this loop fits healthcare students in particular:
+
+- **Volume.** A single OD/MD year adds thousands of discrete facts: foramina, innervations, drug mechanisms, enzyme regulation. Spaced repetition keeps review time manageable by showing each card only when it's due, not every time.
+- **Durability.** Board exams and clinical work need knowledge from Year 1 years later. Retrieval practice spaced over time produces much more durable memory than re-reading or cramming.
+- **Retrieval mirrors the clinic.** A patient doesn't present with four answer choices. Free recall ("what is this down-and-out eye with ptosis?") is the skill students need, so recall is the primary mode and recognition is secondary.
+- **Multi-part answers are the norm.** Clinical facts often come in sets (CN III, VII, IX, X; the actions of an extraocular muscle). The recall checklist makes partial recall visible and the rating consistent, instead of a guess between Hard and Good.
+
+Other modes exist to **support** this loop, not replace it:
+
+| Mode | Role | Effect on schedule |
+|---|---|---|
+| **Spaced review** (core) | Daily recall queue: Again / Hard / Good / Easy | Drives the schedule |
+| Flashcards | Browse or cram a collection freely | None |
+| **Practice quiz** | Quizlet-style multiple choice and true/false generated **only from the student's own cards**, for exam-format practice | None; missed questions can be sent to today's review |
+| Clinical cases | Vignette cards only, for applied reasoning | Uses the normal schedule |
+
+### Practice quiz: generated from your cards, not from an AI
+
+This takes the best part of AI question generation (instant practice questions) without its two problems (waiting and hallucination):
+
+- The correct answer is always the card's answer, and each question links to its source card.
+- Wrong options come from other terms in the same collection (other foramina, other nerves), so they're plausible but never invented.
+- Questions are built instantly on the device.
+- Future option: an AI assistant could *rephrase* a card into a new question stem or vignette. It must cite the source card and the student must review it before use. It never introduces facts that aren't in the student's cards.
+
 ## Personal-first sharing
 
 Sharing in Kivo never means co-editing one deck.
@@ -52,8 +81,9 @@ In the prototype, suggestions are rule-based mock data, not an AI feature.
 1. Dashboard and navigation
 2. Library and collection organization (import, naming suggestion, duplicate warning)
 3. Visual card template builder
-4. Active recall + spaced repetition session (with the recall checklist)
-5. Personal-first sharing (copies, lineage, update suggestions)
+4. Active recall + spaced repetition session (with the recall checklist), the core
+5. Practice quiz generated from the student's own cards
+6. Personal-first sharing (copies, lineage, update suggestions)
 
 Future concepts, deliberately out of MVP: advanced analytics, automated metadata generation, AI assistance, and live collaboration.
 

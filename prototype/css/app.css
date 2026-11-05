@@ -767,3 +767,33 @@ body.has-modal { overflow: hidden; }
 .rating--again.is-suggested { border-color: var(--rating-again); } .rating--hard.is-suggested { border-color: var(--rating-hard); } .rating--good.is-suggested { border-color: var(--rating-good); }
 .rating__sug { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); font: 600 10px/16px var(--font-sans); padding: 0 6px; border-radius: var(--radius-full); background: var(--color-text); color: var(--color-surface); text-transform: uppercase; letter-spacing: .04em; }
 @media (max-width: 760px) { .point { min-height: 40px; } }
+
+/* ---------- Practice quiz -------------------------------------------- */
+.quiz-setup { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-5); margin-top: var(--space-6); align-items: start; }
+.quiz-setup__form .heading { margin-bottom: var(--space-4); }
+.quiz-setup__form .field select { max-width: 360px; }
+.chip-check { cursor: pointer; }
+.chip-check input { position: absolute; opacity: 0; }
+.chip-check span { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--color-border-strong); background: var(--color-surface); font: var(--text-label); }
+.chip-check span .icon { display: none; }
+.chip-check input:checked + span { border-color: var(--color-accent); background: var(--color-accent-subtle); color: var(--color-accent-text); }
+.chip-check input:checked + span .icon { display: block; }
+.chip-check input:focus-visible + span { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.quiz-how { display: flex; flex-direction: column; gap: var(--space-4); }
+.how-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.how-list li { display: flex; gap: var(--space-3); font: var(--text-caption); color: var(--color-text-secondary); }
+.how-list .icon { color: var(--color-accent-text); margin-top: 1px; }
+.how-list strong { color: var(--color-text); font-weight: 600; }
+.quiz-sample { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-muted); display: flex; flex-direction: column; gap: 4px; }
+.quiz__score { margin-left: auto; }
+.mcq--tf { flex-direction: row; } .mcq--tf li { flex: 1; }
+.quiz-feedback { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: baseline; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font: var(--text-body); }
+.quiz-feedback--ok { background: var(--color-success-bg); color: var(--color-success-text); }
+.quiz-feedback--miss { background: var(--color-danger-bg); color: var(--color-danger-text); }
+.source-card { display: flex; flex-direction: column; gap: 4px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--color-border); border-left: 3px solid var(--color-accent); }
+.source-card .overline { display: flex; gap: 4px; align-items: center; }
+.quiz-results { display: flex; flex-direction: column; gap: var(--space-4); }
+.missed-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.missed-list li { display: flex; gap: var(--space-3); align-items: flex-start; }
+@media (max-width: 980px) { .quiz-setup { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .mcq--tf { flex-direction: column; } .quiz__score { display: none; } }

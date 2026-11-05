@@ -28,8 +28,9 @@ Then open http://localhost:4173. To check the phone layout, use a narrow window 
 2. **Session**: press `Space` to reveal. On multi-part answers, tick the key points you recalled; Kivo suggests a rating. Rate with `1`–`4` (`F` flags a card, `P` pauses, `Esc` exits).
 3. Finish to see **what needs more practice**, then return Home ("All caught up").
 4. **My Library → Head & Neck Anatomy → Import shared collection**: the name suggestion (`HN_Lec4_Final` → *Head & Neck Anatomy / Lecture 04 / Cranial Nerves*) and the duplicate warning.
-5. **Cranial Nerves → Edit**: the template builder (Basic, Cloze, Image occlusion, Multiple choice, Clinical vignette) with live preview.
-6. **Share**: recipients always get their own copy. **Review suggestions** shows source updates you accept or skip card by card.
-7. **Explore** and **Insights**.
+5. **Cranial Nerves → Practice quiz**: multiple choice and true/false generated only from your cards. Each answer links to its source card, and missed questions go back into spaced review.
+6. **Cranial Nerves → Edit**: the template builder (Basic, Cloze, Image occlusion, Multiple choice, Clinical vignette) with live preview.
+7. **Share**: recipients always get their own copy. **Review suggestions** shows source updates you accept or skip card by card.
+8. **Explore** and **Insights**.
 
 All data is local sample content. Scheduling uses a simplified prototype model, not a production algorithm.

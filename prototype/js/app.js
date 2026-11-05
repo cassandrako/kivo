@@ -467,7 +467,7 @@
             <div class="mode-grid">
               <a class="mode mode--primary" href="#/study/${col.id}">${icon("refresh", 20)}<strong>Spaced review</strong><small>${col.due} due · scheduled</small></a>
               <a class="mode" href="#/study/${col.id}?mode=flashcards">${icon("study", 20)}<strong>Flashcards</strong><small>Browse all ${col.cards}, no scheduling</small></a>
-              <a class="mode" href="#/study/${col.id}?mode=quiz">${icon("target", 20)}<strong>Practice quiz</strong><small>Multiple choice from cards</small></a>
+              <a class="mode" href="#/quiz/${col.id}">${icon("target", 20)}<strong>Practice quiz</strong><small>Built from your cards</small></a>
               <a class="mode" href="#/study/${col.id}?mode=cases">${icon("book", 20)}<strong>Clinical cases</strong><small>Vignettes only</small></a>
             </div>
             <p class="caption">All modes use the same cards — nothing to recreate. Quiz results don’t change your review schedule.</p>
@@ -801,7 +801,7 @@
       <div class="mode-grid mode-grid--wide">
         <div class="mode mode--static">${icon("refresh", 20)}<strong>Spaced review</strong><small>Cards return right before you’re likely to forget them.</small></div>
         <div class="mode mode--static">${icon("study", 20)}<strong>Flashcards</strong><small>Flip through freely. Doesn’t affect scheduling.</small></div>
-        <div class="mode mode--static">${icon("target", 20)}<strong>Practice quiz</strong><small>Recognition practice. Tracked separately from recall.</small></div>
+        <a class="mode" href="#/quiz/hna-cn">${icon("target", 20)}<strong>Practice quiz</strong><small>Multiple choice and true/false, generated from your own cards.</small></a>
         <div class="mode mode--static">${icon("book", 20)}<strong>Clinical cases</strong><small>Apply knowledge to vignettes.</small></div>
       </div>`;
   }
@@ -1149,6 +1149,178 @@
     return emptyState("Page not found", "That page doesn’t exist in this prototype.", `<a class="btn btn--primary" href="#/home">Go home</a>`);
   }
 
+
+  /* ======================================================================
+     PRACTICE QUIZ — generated only from the student's own cards
+     Correct answers are the card's answer; wrong options come from other
+     terms in the same collection. No external content, so nothing to
+     hallucinate and nothing to wait for. Results never touch scheduling.
+     ====================================================================== */
+  const norm = (t) => String(t).toLowerCase().replace(/[.\s]+$/g, "").trim();
+  function shuffle(arr, seed) {
+    const a = [...arr]; let x = seed || 1;
+    const rnd = () => ((x = (x * 9301 + 49297) % 233280) / 233280);
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function buildQuiz(col, opts) {
+    const pools = col.terms || {};
+    const seed = opts.seed || 7;
+    const cards = col.cardList.filter((c) => opts.section === "All" || c.section === opts.section);
+    const qs = [];
+    cards.forEach((c, n) => {
+      const pool = c.category ? (pools[c.category] || []).filter((t) => norm(t) !== norm(c.term)) : [];
+      if (c.type === "mcq" && opts.mcq) {
+        qs.push({ kind: "mcq", prompt: c.front, options: c.options, answer: c.answer, card: c });
+      } else if (c.type === "cloze" && opts.tf && (!opts.mcq || n % 2 === 1)) {
+        const truthful = n % 4 !== 3 || !pool.length;
+        const swapped = truthful ? c.term : shuffle(pool, seed + n)[0];
+        qs.push({ kind: "tf", prompt: c.front.replace(/\{\{.+?\}\}/, swapped), answer: truthful ? 0 : 1, options: ["True", "False"], card: c, correction: truthful ? null : c.term });
+      } else if (c.term && pool.length >= 3 && opts.mcq) {
+        const prompt = c.type === "cloze" ? c.front.replace(/\{\{.+?\}\}/, "_____") : c.front;
+        const options = shuffle([c.term, ...shuffle(pool, seed + n).slice(0, 3)], seed + n * 3);
+        qs.push({ kind: "mcq", prompt, options, answer: options.indexOf(c.term), card: c });
+      } else if (c.tf && opts.tf) {
+        qs.push({ kind: "tf", prompt: c.tf, options: ["True", "False"], answer: 0, card: c });
+      }
+    });
+    return shuffle(qs, seed).slice(0, opts.count === "all" ? qs.length : +opts.count);
+  }
+
+  function startQuiz(colId, opts) {
+    const col = collectionById(colId);
+    state.quiz = { colId, stage: "run", opts, qs: buildQuiz(col, opts), i: 0, picked: null, checked: false, results: [] };
+  }
+
+  function viewQuiz(id) {
+    const col = collectionById(id);
+    if (!col || !col.cardList) return emptyState("Quiz unavailable", "Practice quizzes are available for the Cranial Nerves sample collection in this prototype.", `<a class="btn btn--primary" href="#/collection/hna-cn">Open Cranial Nerves</a>`);
+    if (!state.quiz || state.quiz.colId !== id) state.quiz = { colId: id, stage: "setup", opts: { mcq: true, tf: true, count: "all", section: "All", seed: 7 } };
+    const q = state.quiz;
+    if (q.stage === "setup") return viewQuizSetup(col, q);
+    if (q.stage === "done") return viewQuizResults(col, q);
+    return viewQuizQuestion(col, q);
+  }
+
+  function viewQuizSetup(col, q) {
+    const preview = buildQuiz(col, q.opts);
+    const course = courseById(col.courseId);
+    const sections = ["All", ...new Set(col.cardList.map((c) => c.section))];
+    return `
+      ${breadcrumb([{ label: "My Library", href: "#/library" }, { label: course.name, href: `#/course/${course.id}` }, { label: col.title, href: `#/collection/${col.id}` }, { label: "Practice quiz" }])}
+      <header class="page-header">
+        <div><h1 class="title">Practice quiz</h1><p class="lede">Built instantly from the cards in <strong>${esc(col.title)}</strong>. Every question links back to the card it came from. Use it alongside spaced review: it checks recognition, and anything you miss goes back into your recall queue.</p></div>
+      </header>
+      <div class="quiz-setup">
+        <section class="card quiz-setup__form" aria-labelledby="qs-title">
+          <h2 id="qs-title" class="heading">Set up your quiz</h2>
+          <fieldset class="field"><legend class="field__label">Question types</legend>
+            <div class="choice-row">
+              <label class="chip-check"><input type="checkbox" data-change="quiz-opt" data-key="mcq" ${q.opts.mcq ? "checked" : ""}><span>${icon("check", 14)}Multiple choice</span></label>
+              <label class="chip-check"><input type="checkbox" data-change="quiz-opt" data-key="tf" ${q.opts.tf ? "checked" : ""}><span>${icon("check", 14)}True / false</span></label>
+            </div></fieldset>
+          <label class="field"><span class="field__label">Cover</span>
+            <select data-change="quiz-opt" data-key="section">${sections.map((s) => `<option ${s === q.opts.section ? "selected" : ""} value="${esc(s)}">${s === "All" ? "Whole collection" : esc(s)}</option>`).join("")}</select></label>
+          <fieldset class="field"><legend class="field__label">Length</legend>
+            <div class="choice-row">${[["5", "5 questions"], ["all", `All (${buildQuiz(col, { ...q.opts, count: "all" }).length})`]].map(([v, l]) => `<label class="chip-radio"><input type="radio" name="qcount" data-change="quiz-opt" data-key="count" value="${v}" ${q.opts.count === v ? "checked" : ""}><span>${l}</span></label>`).join("")}</div></fieldset>
+          <div class="stack-h">
+            <button class="btn btn--primary btn--lg" data-action="quiz-start" ${preview.length ? "" : "disabled"}>${icon("play", 16)}Start quiz · ${plural(preview.length, "question")}</button>
+            <button class="btn btn--ghost btn--lg" data-action="quiz-shuffle">${icon("refresh", 16)}Shuffle</button>
+          </div>
+        </section>
+        <aside class="quiz-how card">
+          <h2 class="overline">How questions are made</h2>
+          <ul class="how-list">
+            <li>${icon("layers", 16)}<span><strong>From your cards only.</strong> The correct answer is your card’s answer. No outside content, so nothing is invented.</span></li>
+            <li>${icon("target", 16)}<span><strong>Plausible wrong options.</strong> Drawn from other terms in this collection, like other foramina or other nerves.</span></li>
+            <li>${icon("clock", 16)}<span><strong>Instant.</strong> Built on your device. No waiting for generation.</span></li>
+            <li>${icon("info", 16)}<span><strong>Doesn’t change your schedule.</strong> Picking an answer is recognition, not recall. Missed questions can be sent to today’s review.</span></li>
+          </ul>
+          <div class="quiz-sample">
+            <p class="overline">Sample question</p>
+            ${preview[0] ? `<p class="body-strong">${esc(preview[0].prompt)}</p><p class="caption">${preview[0].kind === "mcq" ? `${preview[0].options.length} options` : "True or false"} · from “${esc(preview[0].card.section)}”</p>` : `<p class="caption">Choose at least one question type.</p>`}
+          </div>
+        </aside>
+      </div>`;
+  }
+
+  function viewQuizQuestion(col, q) {
+    const item = q.qs[q.i];
+    const total = q.qs.length;
+    const correct = q.checked && q.picked === item.answer;
+    return `
+      <div class="session quiz">
+        <header class="session__bar">
+          <button class="icon-btn" data-action="quiz-exit" aria-label="Exit quiz">${icon("x", 18)}</button>
+          <div class="session__progress">
+            <div class="session__title"><span>Practice quiz · ${esc(col.title)}</span><span class="caption">Question ${q.i + 1} of ${total}</span></div>
+            ${progressBar((q.i + (q.checked ? 1 : 0)) / total, "Quiz progress", "progress--thin")}
+          </div>
+          <span class="badge badge--neutral quiz__score">${q.results.filter((r) => r.correct).length} correct</span>
+        </header>
+        <main class="session__stage">
+          <article class="flashcard flashcard--study quiz-card">
+            <div class="flashcard__meta"><span class="chip chip--${item.kind === "mcq" ? "lavender" : "sage"}">${item.kind === "mcq" ? "Multiple choice" : "True or false"}</span><span class="caption">${esc(item.card.section)}</span></div>
+            <div class="flashcard__body">
+              <p class="fc__prompt">${esc(item.prompt)}</p>
+              <ol class="mcq mcq--interactive ${item.kind === "tf" ? "mcq--tf" : ""}">${item.options.map((o, i) => {
+                const cls = q.checked ? (i === item.answer ? "is-correct" : i === q.picked ? "is-wrong" : "") : (i === q.picked ? "is-picked" : "");
+                return `<li><button class="mcq__opt ${cls}" data-action="quiz-pick" data-index="${i}" ${q.checked ? "disabled" : ""} aria-pressed="${i === q.picked}"><span>${item.kind === "tf" ? (i === 0 ? "T" : "F") : String.fromCharCode(65 + i)}</span>${esc(o)}
+                  ${q.checked && i === item.answer ? `<em>${icon("check", 14)}Correct answer</em>` : ""}${q.checked && i === q.picked && i !== item.answer ? `<em>${icon("x", 14)}Your answer</em>` : ""}</button></li>`;
+              }).join("")}</ol>
+              ${q.checked ? `
+                <div class="quiz-feedback quiz-feedback--${correct ? "ok" : "miss"}" role="status">
+                  <strong>${correct ? "Correct" : "Not quite"}</strong>${item.correction ? `<span>The statement should read “${esc(item.correction)}”.</span>` : ""}
+                </div>
+                <div class="source-card">
+                  <p class="overline">${icon("layers", 12)} From your card</p>
+                  <p class="body-strong">${renderClozeText(item.card.front, "preview")}</p>
+                  <p class="caption">${esc(item.card.back)}</p>
+                  ${item.card.extra ? `<p class="caption">${esc(item.card.extra)}</p>` : ""}
+                </div>` : ""}
+            </div>
+          </article>
+        </main>
+        <footer class="session__controls">
+          ${q.checked
+            ? `<button class="btn btn--primary btn--xl" data-action="quiz-next" autofocus>${q.i + 1 < total ? "Next question" : "See results"} <kbd>↵</kbd></button>`
+            : `<button class="btn btn--primary btn--xl" data-action="quiz-check" ${q.picked == null ? "disabled" : ""}>Check answer <kbd>↵</kbd></button>
+               <p class="caption">Press ${item.kind === "tf" ? "T or F" : "A–D or 1–4"} to choose.</p>`}
+        </footer>
+      </div>`;
+  }
+
+  function viewQuizResults(col, q) {
+    const right = q.results.filter((r) => r.correct).length;
+    const missed = q.results.filter((r) => !r.correct);
+    return `
+      <div class="summary">
+        <div class="summary__inner">
+          <div class="summary__icon">${icon("target", 26)}</div>
+          <h1 class="title">${right} of ${q.results.length} correct</h1>
+          <p class="lede">Practice quiz · ${esc(col.title)}. Quiz results show recognition and don’t change your review schedule.</p>
+          <section class="card quiz-results">
+            <h2 class="heading">${missed.length ? "Review what you missed" : "Nothing missed"}</h2>
+            ${missed.length ? `<ul class="missed-list">${missed.map((r) => `
+              <li><span class="badge badge--danger">${icon("x", 12)}Missed</span>
+                <div><p class="body-strong">${esc(r.item.prompt)}</p><p class="caption">Answer: ${esc(r.item.options[r.item.answer])} · from your card in “${esc(r.item.card.section)}”</p></div></li>`).join("")}</ul>
+              <div class="stack-h">
+                <button class="btn btn--primary" data-action="quiz-to-review" data-n="${missed.length}">${icon("refresh", 16)}Add ${plural(missed.length, "card")} to today’s review</button>
+                <button class="btn btn--secondary" data-action="quiz-retake-missed">Retake missed</button>
+              </div>` : `<p class="caption">You answered every question correctly. Spaced review will keep it that way.</p>`}
+          </section>
+          <div class="stack-h stack-h--center">
+            <a class="btn btn--ghost btn--lg" href="#/collection/${col.id}">Back to collection</a>
+            <button class="btn btn--secondary btn--lg" data-action="quiz-again">${icon("refresh", 16)}New quiz</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function quizCheck() { const q = state.quiz; if (!q || q.checked || q.picked == null) return; q.checked = true; const item = q.qs[q.i]; q.results.push({ item, correct: q.picked === item.answer }); render(); $("[data-action='quiz-next']")?.focus(); }
+  function quizNext() { const q = state.quiz; if (!q || !q.checked) return; if (q.i + 1 >= q.qs.length) { q.stage = "done"; } else { q.i++; q.picked = null; q.checked = false; } render(); }
+
   /* ======================================================================
      MODALS
      ====================================================================== */
@@ -1391,12 +1563,12 @@
     return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="13" height="16" rx="3" fill="currentColor" opacity=".35"/><rect x="8" y="3" width="13" height="16" rx="3" fill="currentColor"/><path d="m12 11 2 2 3.5-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   }
 
-  const TITLES = { home: "Home", library: "My Library", course: "Course", collection: "Collection", builder: "New card", study: "Study", explore: "Explore", insights: "Insights" };
+  const TITLES = { quiz: "Practice quiz", home: "Home", library: "My Library", course: "Course", collection: "Collection", builder: "New card", study: "Study", explore: "Explore", insights: "Insights" };
 
   function render() {
     const r = parseRoute();
     const view = $("#view");
-    const inSession = r.name === "study" && r.id;
+    const inSession = (r.name === "study" && r.id) || (r.name === "quiz" && state.quiz && state.quiz.colId === r.id && state.quiz.stage !== "setup");
     document.body.classList.toggle("is-focus-mode", !!inSession);
 
     let html;
@@ -1407,13 +1579,14 @@
       case "collection": html = viewCollection(r.id); break;
       case "builder": html = viewBuilder(r.id); break;
       case "study": html = r.id ? viewSession(r.id) : viewStudyHub(); break;
+      case "quiz": html = viewQuiz(r.id); break;
       case "explore": html = viewExplore(); break;
       case "insights": html = viewInsights(); break;
       default: html = viewNotFound();
     }
     view.innerHTML = `<div class="page ${inSession ? "page--session" : ""}">${html}</div>`;
 
-    const active = r.name === "course" || r.name === "collection" || r.name === "builder" ? "library" : r.name;
+    const active = r.name === "course" || r.name === "collection" || r.name === "builder" ? "library" : r.name === "quiz" ? "study" : r.name;
     $$("[data-nav]").forEach((a) => {
       const on = a.dataset.nav === active;
       a.classList.toggle("is-active", on);
@@ -1509,6 +1682,15 @@
     },
     "toggle-keys": () => { state.session.showKeys = !state.session.showKeys; store.set("showKeys", state.session.showKeys); render(); },
     "explain-scheduling": () => openSchedulingExplainer(),
+    "quiz-start": () => { startQuiz(state.quiz.colId, state.quiz.opts); render(); },
+    "quiz-shuffle": () => { state.quiz.opts.seed = (state.quiz.opts.seed || 7) + 13; render(); toast("Questions reshuffled"); },
+    "quiz-pick": (el) => { if (state.quiz.checked) return; state.quiz.picked = +el.dataset.index; render(); $(`.mcq__opt[data-index="${el.dataset.index}"]`)?.focus(); },
+    "quiz-check": () => quizCheck(),
+    "quiz-next": () => quizNext(),
+    "quiz-exit": () => { const id = state.quiz.colId; state.quiz = null; navigate(`#/collection/${id}`); },
+    "quiz-again": () => { const id = state.quiz.colId, opts = state.quiz.opts; state.quiz = { colId: id, stage: "setup", opts: { ...opts, seed: (opts.seed || 7) + 13 } }; render(); },
+    "quiz-retake-missed": () => { const q = state.quiz; const qs = q.results.filter((r) => !r.correct).map((r) => r.item); state.quiz = { ...q, stage: "run", qs, i: 0, picked: null, checked: false, results: [] }; render(); },
+    "quiz-to-review": (el) => { const n = +el.dataset.n; state.dueToday += n; el.disabled = true; el.innerHTML = `${icon("check", 16)}Added to today’s review`; toast(`${plural(n, "card")} added to today’s review`, { tone: "success", action: "Review now", onAction: () => { state.quiz = null; navigate("#/study/today"); } }); },
     "drill-weak": () => { const id = state.session.id; state.session = null; navigate(`#/study/${id}`); toast("Drilling cards you rated Again or Hard"); },
     "clear-explore": () => { state.exploreQuery = ""; state.exploreFilters = { program: "", course: "", topic: "", institution: "" }; render(); },
     "explore-preview": (el) => openExplorePreview(el.dataset.id),
@@ -1565,6 +1747,10 @@
 
   function onChange(e) {
     const el = e.target;
+    if (el.dataset.change === "quiz-opt" && state.quiz) {
+      const k = el.dataset.key; state.quiz.opts[k] = el.type === "checkbox" ? el.checked : el.value;
+      render(); $(`[data-change="quiz-opt"][data-key="${k}"]${el.type === "radio" ? `[value="${el.value}"]` : ""}`)?.focus(); return;
+    }
     if (el.dataset.change === "library-filter") { state.libraryFilter = el.value; $("#library-results").innerHTML = libraryResults(); }
     if (el.dataset.change === "library-sort") { state.librarySort = el.value; $("#library-results").innerHTML = libraryResults(); }
     if (el.dataset.change === "explore-filter") { state.exploreFilters[el.dataset.key] = el.value; render(); $(`[data-change="explore-filter"][data-key="${el.dataset.key}"]`)?.focus(); }
@@ -1575,6 +1761,7 @@
     trapFocus(e);
     if (e.key === "Escape") {
       if (!$("#modal-root").hidden) { closeModal(); return; }
+      if (state.quiz && state.quiz.stage === "run" && parseRoute().name === "quiz") { actions["quiz-exit"](); return; }
       if (state.session && document.body.classList.contains("is-focus-mode")) { actions["session-exit"](); return; }
     }
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
@@ -1584,6 +1771,18 @@
     if (typing || !$("#modal-root").hidden) return;
 
     if (e.key === "/" ) { e.preventDefault(); const s = $("input[type=search]"); s ? s.focus() : actions["focus-search"](); return; }
+    const q = state.quiz;
+    if (q && q.stage === "run" && parseRoute().name === "quiz") {
+      const item = q.qs[q.i], k = e.key.toLowerCase();
+      if (e.key === "Enter") { e.preventDefault(); q.checked ? quizNext() : quizCheck(); return; }
+      if (!q.checked) {
+        let idx = -1;
+        if (item.kind === "tf") idx = k === "t" ? 0 : k === "f" ? 1 : ["1", "2"].includes(k) ? +k - 1 : -1;
+        else idx = "abcd".indexOf(k) >= 0 ? "abcd".indexOf(k) : ["1", "2", "3", "4"].includes(k) ? +k - 1 : -1;
+        if (idx >= 0 && idx < item.options.length) { q.picked = idx; render(); }
+      }
+      return;
+    }
     const s = state.session;
     if (s && document.body.classList.contains("is-focus-mode") && !s.finished) {
       if (e.key === " " && !s.revealed && !e.target.closest("button")) { e.preventDefault(); actions.reveal(); }
@@ -1609,6 +1808,7 @@
       const r = parseRoute();
       if (r.name !== "collection") state.collectionSection = "All";
       if (!(r.name === "study" && r.id) && state.session?.finished) state.session = null;
+      if (r.name !== "quiz" && state.quiz?.stage === "done") state.quiz = null;
       render();
       window.scrollTo(0, 0);
       $("#view").focus({ preventScroll: true });

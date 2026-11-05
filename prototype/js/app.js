@@ -1371,7 +1371,7 @@
           <span class="link-row__icon">${icon("link", 16)}</span>
           <div class="link-row__body">
             <label for="link-access" class="body-strong">Who can get a copy from the link</label>
-            <select id="link-access"><option>Only people I send it to</option><option selected>Anyone at Pacific College of Optometry</option><option>Anyone with the link</option></select>
+            <select id="link-access"><option>Only people I send it to</option><option selected>Anyone at Pennsylvania College of Optometry</option><option>Anyone with the link</option></select>
           </div>
         </div>
       </div>

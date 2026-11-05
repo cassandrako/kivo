@@ -243,9 +243,8 @@ body.is-focus-mode .sidebar, body.is-focus-mode .appbar, body.is-focus-mode .tab
 /* ---------- Home ------------------------------------------------------- */
 .home-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); grid-template-areas: "hero exams" "recent next"; gap: var(--space-5); align-items: start; }
 .hero { grid-area: hero; }
-.hero { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-6); background: linear-gradient(0deg, var(--color-surface), var(--color-surface)); border-color: var(--lavender-200); position: relative; overflow: hidden; }
+.hero { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-6); background: linear-gradient(0deg, var(--color-surface), var(--color-surface)); border-color: var(--color-hero-border); position: relative; overflow: hidden; }
 .hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--color-accent); }
-:root[data-theme="dark"] .hero { border-color: var(--color-border-strong); }
 .hero__count { font: var(--text-display); letter-spacing: -0.02em; margin-top: var(--space-2); }
 .hero__count .num { color: var(--color-accent-text); }
 .hero__meta { display: flex; align-items: center; gap: 6px; margin-top: var(--space-1); color: var(--color-text-secondary); }
@@ -450,8 +449,7 @@ button.mcq__opt:hover:not([disabled]) { border-color: var(--color-accent); }
 .occ-editor .occ__skull { fill: var(--color-surface); }
 .occ__ridge { fill: none; stroke: var(--color-border-strong); stroke-width: 1.2; stroke-dasharray: 3 3; }
 .occ__sella { fill: var(--color-border); }
-.occ__hole { fill: var(--neutral-700); }
-:root[data-theme="dark"] .occ__hole { fill: #0e0e11; }
+.occ__hole { fill: var(--color-occ-hole); }
 .occ__leader { stroke: var(--color-text-tertiary); stroke-width: 1; }
 .occ__box { fill: var(--color-surface); stroke: var(--color-border-strong); }
 .occ__text { font: 500 11px var(--font-sans); fill: var(--color-text); }
@@ -528,8 +526,7 @@ button.mcq__opt:hover:not([disabled]) { border-color: var(--color-accent); }
 .preview-cards { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
 
 /* ---------- Insights --------------------------------------------------- */
-.recommend { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-6); border-color: var(--lavender-200); background: var(--color-surface-accent); }
-:root[data-theme="dark"] .recommend { border-color: var(--color-border-strong); }
+.recommend { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-6); border-color: var(--color-hero-border); background: var(--color-surface-accent); }
 .recommend__icon { width: 44px; height: 44px; border-radius: var(--radius-md); display: grid; place-items: center; background: var(--color-surface); color: var(--color-accent-text); flex: none; }
 .recommend__body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-top: var(--space-5); }
@@ -623,13 +620,11 @@ body.has-modal { overflow: hidden; }
 .prose p { color: var(--color-text-secondary); }
 .rating-explain { display: flex; flex-direction: column; gap: var(--space-2); }
 .rating-explain li { display: flex; gap: var(--space-3); align-items: baseline; color: var(--color-text-secondary); }
-.rating-pill { flex: none; width: 56px; text-align: center; font: 600 12px/22px var(--font-sans); color: #fff; border-radius: var(--radius-full); }
-:root[data-theme="dark"] .rating-pill { color: #17171B; }
+.rating-pill { flex: none; width: 56px; text-align: center; font: 600 12px/22px var(--font-sans); color: var(--color-on-rating); border-radius: var(--radius-full); }
 
 /* ---------- Toast ------------------------------------------------------ */
 .toast-root { position: fixed; bottom: var(--space-6); left: 50%; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; gap: var(--space-2); align-items: center; width: max-content; max-width: calc(100vw - 32px); }
-.toast { display: flex; align-items: center; gap: var(--space-3); padding: 8px 8px 8px 14px; border-radius: var(--radius-lg); background: var(--neutral-900); color: #fff; box-shadow: var(--shadow-3); font: var(--text-label); font-weight: 400; animation: toast-in var(--duration-slow) var(--ease); }
-:root[data-theme="dark"] .toast { background: #3A3A42; }
+.toast { display: flex; align-items: center; gap: var(--space-3); padding: 8px 8px 8px 14px; border-radius: var(--radius-lg); background: var(--color-toast-bg); color: #fff; box-shadow: var(--shadow-3); font: var(--text-label); font-weight: 400; animation: toast-in var(--duration-slow) var(--ease); }
 .toast--success > .icon { color: #A6D9B9; }
 .toast--error > .icon { color: #F0A099; }
 .toast .btn--ghost { color: #D6CFF5; height: 28px; }
@@ -668,11 +663,12 @@ body.has-modal { overflow: hidden; }
   .app { display: block; }
   .sidebar { display: none; }
   .appbar {
-    display: flex; position: sticky; top: 0; z-index: 20; align-items: center; justify-content: space-between;
-    padding: var(--space-2) var(--space-4); padding-top: max(var(--space-2), env(safe-area-inset-top));
+    display: flex; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; align-items: center; justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
     background: color-mix(in srgb, var(--color-bg) 85%, transparent); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px);
     border-bottom: 0.5px solid var(--color-border);
   }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--color-bg); }
   .appbar__actions { display: flex; align-items: center; gap: var(--space-2); }
   .tabbar {
     display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;

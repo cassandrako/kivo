@@ -123,6 +123,10 @@
   --duration-base: 200ms;
   --duration-slow: 320ms;
 
+  --color-hero-border: var(--lavender-200);
+  --color-occ-hole: var(--neutral-700);
+  --color-on-rating: #FFFFFF;
+  --color-toast-bg: var(--neutral-900);
   color-scheme: light;
 }
 
@@ -156,8 +160,51 @@
   --shadow-1: 0 1px 2px rgba(0,0,0,.3);
   --shadow-2: 0 2px 8px rgba(0,0,0,.35);
   --shadow-3: 0 12px 32px rgba(0,0,0,.5);
+  --color-hero-border: #3A3A42;
+  --color-occ-hole: #0e0e11;
+  --color-on-rating: #17171B;
+  --color-toast-bg: #3A3A42;
   color-scheme: dark;
 }
+/* Follow the OS setting unless the viewer picked light explicitly */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg:              #17171B;
+    --color-surface:         #1F1F24;
+    --color-surface-muted:   #26262C;
+    --color-surface-raised:  #2A2A31;
+    --color-surface-accent:  #2C2840;
+    --color-border:          #2E2E35;
+    --color-border-strong:   #3A3A42;
+    --color-text:            #EEEEF0;
+    --color-text-secondary:  #A9A9B2;
+    --color-text-tertiary:   #8A8A93;
+    --color-accent:          #9C8BE3;
+    --color-accent-hover:    #AE9FEA;
+    --color-accent-text:     #BDB1F0;
+    --color-accent-subtle:   #2C2840;
+    --color-sage-subtle:     #22302A;
+    --color-sage-text:       #A6C6B8;
+    --color-peach-subtle:    #3A2A23;
+    --color-peach-text:      #F3B99F;
+    --color-success-bg: #1F3328; --color-success-text: #8FD1A8;
+    --color-warning-bg: #3A2F17; --color-warning-text: #E8C277;
+    --color-danger-bg:  #3D2220; --color-danger-text:  #F0A099;
+    --rating-again: #F0A099;
+    --rating-hard:  #E8C277;
+    --rating-good:  #8FD1A8;
+    --rating-easy:  #BDB1F0;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+    --shadow-2: 0 2px 8px rgba(0,0,0,.35);
+    --shadow-3: 0 12px 32px rgba(0,0,0,.5);
+    --color-hero-border: #3A3A42;
+    --color-occ-hole: #0e0e11;
+    --color-on-rating: #17171B;
+    --color-toast-bg: #3A3A42;
+    color-scheme: dark;
+  }
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   :root {

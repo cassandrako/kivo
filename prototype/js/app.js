@@ -1518,7 +1518,7 @@
      ROUTER + RENDER
      ====================================================================== */
   function parseRoute() {
-    const raw = location.hash.replace(/^#\/?/, "") || "home";
+    const raw = currentRoute.replace(/^#\/?/, "") || "home";
     const [path, query = ""] = raw.split("?");
     const [name, id] = path.split("/");
     return { name, id, query: new URLSearchParams(query) };
@@ -1599,8 +1599,14 @@
     document.title = `${TITLES[r.name] || "Kivo"} · Kivo`;
   }
 
+  /* In-memory router. Works the same on a local server and inside a
+     sandboxed frame where hash paths can't be written to the address bar. */
+  let currentRoute = /^#\//.test(location.hash) ? location.hash : "#/home";
   function navigate(hash) {
-    if (location.hash === hash) render(); else location.hash = hash;
+    const changed = hash !== currentRoute;
+    currentRoute = hash;
+    try { if (location.hash !== hash) history.replaceState(null, "", hash); } catch { /* sandboxed: keep route in memory */ }
+    changed ? onRouteChange() : render();
   }
 
   /* ---------- events ---------------------------------------------------- */
@@ -1608,7 +1614,8 @@
     "close-modal": () => closeModal(),
     "toggle-theme": () => {
       const root = document.documentElement;
-      const next = root.dataset.theme === "dark" ? "light" : "dark";
+      const isDark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      const next = isDark ? "light" : "dark";
       root.dataset.theme = next;
       store.set("theme", next);
     },
@@ -1626,7 +1633,7 @@
       $("#share-people").appendChild(li); input.value = ""; input.removeAttribute("aria-invalid");
       toast(`Sent ${v} their own copy`, { tone: "success" });
     },
-    "copy-link": () => { try { navigator.clipboard?.writeText("https://kivo.app/s/arivera/cranial-nerves"); } catch { /* ignore */ } toast("Link copied", { tone: "success" }); },
+    "copy-link": () => { try { navigator.clipboard?.writeText("https://kivo.app/s/arivera/cranial-nerves")?.catch(() => {}); } catch { /* ignore */ } toast("Link copied", { tone: "success" }); },
     "review-update": () => openSuggestions(),
     "open-import": (el) => openImport(el.dataset.course),
     "import-next": () => state._importRender?.render2(),
@@ -1671,7 +1678,7 @@
         openModal(`<header class="modal__head"><h2 class="heading">End this session?</h2></header>
           <div class="modal__body"><p>You’ve reviewed ${s.index} of ${s.queue.length} cards. Ratings so far are saved and remaining cards stay due.</p></div>
           <footer class="modal__foot"><button class="btn btn--ghost" data-action="close-modal" autofocus>Keep going</button><button class="btn btn--primary" data-action="session-end">End session</button></footer>`, { label: "End session", size: "sm" });
-      } else { state.session = null; history.length > 1 ? history.back() : navigate("#/home"); }
+      } else { state.session = null; navigate("#/home"); }
     },
     "session-end": () => { closeModal(true); if (state.session?.ratings.length) { finishSession(); render(); } else { state.session = null; navigate("#/home"); } },
     "session-done": () => { state.session = null; },
@@ -1719,6 +1726,15 @@
   }
 
   function onClick(e) {
+    const link = e.target.closest('a[href^="#/"]');
+    if (link && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+      e.preventDefault();
+      const act = link.dataset.action && actions[link.dataset.action];
+      if (act && link.dataset.action !== "session-done") { act(link, e); return; }
+      if (act) act(link, e);
+      navigate(link.getAttribute("href"));
+      return;
+    }
     const row = e.target.closest("tr[data-href]");
     if (row && !e.target.closest("a")) { navigate(row.dataset.href); return; }
     const el = e.target.closest("[data-action]");
@@ -1804,6 +1820,12 @@
     document.addEventListener("change", onChange);
     document.addEventListener("keydown", onKey);
     window.addEventListener("hashchange", () => {
+      if (/^#\//.test(location.hash) && location.hash !== currentRoute) { currentRoute = location.hash; onRouteChange(); }
+    });
+    render();
+  }
+
+  function onRouteChange() {
       closeModal(true);
       const r = parseRoute();
       if (r.name !== "collection") state.collectionSection = "All";
@@ -1812,8 +1834,6 @@
       render();
       window.scrollTo(0, 0);
       $("#view").focus({ preventScroll: true });
-    });
-    render();
   }
 
   boot();

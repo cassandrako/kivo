@@ -539,7 +539,7 @@
 
   /* ---------- Card builder ---------------------------------------------- */
   const BUILDER_DEFAULTS = {
-    basic: { front: "What does the optic nerve (CN II) pass through to enter the cranial cavity?", back: "The optic canal, with the ophthalmic artery.", extra: "The optic canal is in the lesser wing of the sphenoid." },
+    basic: { front: "What does the optic nerve (CN II) pass through to enter the cranial cavity?", back: "The optic canal, with the ophthalmic artery.", points: "Optic canal, Ophthalmic artery", extra: "The optic canal is in the lesser wing of the sphenoid." },
     cloze: { text: "The {{superior oblique}} is innervated by the {{trochlear nerve (CN IV)}}.", extra: "SO4 — superior oblique, CN IV." },
     occlusion: { prompt: "Identify the masked foramen.", masked: ["Foramen rotundum", "Foramen ovale", "Superior orbital fissure"] },
     mcq: { stem: "Which muscle is the primary depressor of the eye in adduction?", options: ["Inferior rectus", "Superior oblique", "Inferior oblique", "Lateral rectus"], correct: 1, explanation: "In adduction the superior oblique’s line of pull aligns with the visual axis, making it the main depressor." },
@@ -652,6 +652,7 @@
     switch (b.template) {
       case "basic":
         return field("front", "Front · question", { area: true }) + field("back", "Back · answer", { area: true, rows: 2 }) +
+          field("points", "Key points <small>optional</small>", { hint: "Separate with commas. While reviewing you’ll tick off which parts you recalled.", placeholder: "e.g. Optic canal, Ophthalmic artery" }) +
           field("extra", "Extra context <small>optional</small>", { area: true, rows: 2, hint: "Shown after the answer — mnemonics, clinical pearls, sources." });
       case "cloze":
         return `
@@ -690,7 +691,7 @@
     switch (b.template) {
       case "basic":
         body = `<p class="fc__prompt">${esc(f.front) || "<span class='muted'>Your question appears here</span>"}</p>
-          ${back ? `<hr class="fc__rule"><p class="fc__answer">${esc(f.back)}</p>${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}` : ""}`;
+          ${back ? `<hr class="fc__rule"><p class="fc__answer">${esc(f.back)}</p>${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}${pointsPreview(f.points)}` : ""}`;
         break;
       case "cloze":
         body = `<p class="fc__prompt">${renderClozeText(f.text, back ? "back" : "front")}</p>${back && f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}`;
@@ -718,6 +719,12 @@
         <div class="flashcard__body">${body}</div>
       </div>
       <p class="caption builder__count">${icon("layers", 14)} Creates ${plural(count + (b.advanced.reverse && b.template === "basic" ? 1 : 0), "card")} · ${esc(b.advanced.section)}</p>`;
+  }
+
+  function pointsPreview(str) {
+    const pts = (str || "").split(",").map((p) => p.trim()).filter(Boolean);
+    if (pts.length < 2) return "";
+    return `<div class="checklist"><p class="checklist__title"><span class="overline">What did you recall?</span><span class="caption">0 of ${pts.length} key points</span></p><div class="checklist__points">${pts.map((p) => `<span class="point">${icon("plus", 14)}${esc(p)}</span>`).join("")}</div></div>`;
   }
 
   function renderClozeText(text, mode) {
@@ -806,7 +813,7 @@
     state.session = {
       id, title: id === "today" ? "Today’s review" : `${col.title}`,
       queue, index: 0, revealed: false, paused: false, picked: null,
-      ratings: [], startedAt: Date.now(), showKeys: store.get("showKeys", true), finished: false,
+      ratings: [], startedAt: Date.now(), showKeys: store.get("showKeys", true), checked: [], finished: false,
     };
   }
 
@@ -836,7 +843,7 @@
               <span class="caption">${esc(col)} · ${esc(card.section)}</span>
               <button class="icon-btn icon-btn--sm ${state.flagged.has(card.id) ? "is-on" : ""}" data-action="session-flag" aria-pressed="${state.flagged.has(card.id)}" aria-label="Flag card for later">${icon("flag", 16)}</button>
             </div>
-            <div class="flashcard__body">${sessionCardBody(card, s)}</div>
+            <div class="flashcard__body">${sessionCardBody(card, s)}${checklistBlock(card, s)}</div>
           </article>
         </main>
 
@@ -844,7 +851,8 @@
           ${s.revealed ? `
             <div class="ratings" role="group" aria-label="How well did you recall it?">
               ${[["again", "Again", "Didn’t recall", 1], ["hard", "Hard", "Recalled with effort", 2], ["good", "Good", "Recalled", 3], ["easy", "Easy", "Instant recall", 4]].map(([k, l, d, n]) => `
-                <button class="rating rating--${k}" data-action="rate" data-value="${k}">
+                <button class="rating rating--${k} ${suggestedRating(card, s) === k ? "is-suggested" : ""}" data-action="rate" data-value="${k}">
+                  ${suggestedRating(card, s) === k ? `<span class="rating__sug">Suggested</span>` : ""}
                   <span class="rating__label">${l}</span>
                   <span class="rating__desc">${d}</span>
                   <span class="rating__next">${Scheduler.label(prev[k])}</span>
@@ -899,6 +907,27 @@
     }
   }
 
+  /* Recall checklist: multi-part answers are split into key points. The
+     student ticks what they recalled and Kivo suggests a rating — keeping
+     Anki's reveal-and-rate loop but making Hard vs Good less of a guess. */
+  function suggestedRating(card, s) {
+    if (!card.points || !s.revealed) return null;
+    const n = s.checked.length, total = card.points.length;
+    if (n === 0) return "again";
+    if (n < total) return "hard";
+    return "good";
+  }
+  function checklistBlock(card, s) {
+    if (!card.points || !s.revealed) return "";
+    const sug = suggestedRating(card, s);
+    return `<div class="checklist" role="group" aria-labelledby="checklist-title">
+      <p class="checklist__title" id="checklist-title"><span class="overline">What did you recall?</span><span class="caption">${s.checked.length} of ${card.points.length} key points</span></p>
+      <div class="checklist__points">${card.points.map((p, i) => `
+        <button class="point ${s.checked.includes(i) ? "is-on" : ""}" data-action="check-point" data-index="${i}" aria-pressed="${s.checked.includes(i)}">${icon(s.checked.includes(i) ? "check" : "plus", 14)}${esc(p)}</button>`).join("")}</div>
+      <p class="caption">Suggested rating: <strong class="checklist__sug checklist__sug--${sug}">${sug[0].toUpperCase() + sug.slice(1)}</strong> — you make the final call.</p>
+    </div>`;
+  }
+
   function rate(value) {
     const s = state.session;
     if (!s || !s.revealed || s.paused) return;
@@ -909,6 +938,7 @@
     s.index++;
     s.revealed = false;
     s.picked = null;
+    s.checked = [];
     if (s.index >= s.queue.length || s.ratings.filter((r) => r.value !== "again").length >= new Set(s.queue.map((c) => c.id)).size) {
       finishSession();
     }
@@ -1472,6 +1502,11 @@
     },
     "session-end": () => { closeModal(true); if (state.session?.ratings.length) { finishSession(); render(); } else { state.session = null; navigate("#/home"); } },
     "session-done": () => { state.session = null; },
+    "check-point": (el) => {
+      const s = state.session, i = +el.dataset.index;
+      s.checked = s.checked.includes(i) ? s.checked.filter((x) => x !== i) : [...s.checked, i];
+      render(); $(`.point[data-index="${i}"]`)?.focus();
+    },
     "toggle-keys": () => { state.session.showKeys = !state.session.showKeys; store.set("showKeys", state.session.showKeys); render(); },
     "explain-scheduling": () => openSchedulingExplainer(),
     "drill-weak": () => { const id = state.session.id; state.session = null; navigate(`#/study/${id}`); toast("Drilling cards you rated Again or Hard"); },
@@ -1495,7 +1530,7 @@
     }
     const n = b.template === "cloze" ? (f.text.match(/\{\{.+?\}\}/g) || []).length : b.template === "occlusion" ? f.masked.length : 1;
     col.cards += n; col.newCards += n; b.added += n;
-    if (b.template === "basic") { f.front = ""; f.back = ""; f.extra = ""; }
+    if (b.template === "basic") { f.front = ""; f.back = ""; f.extra = ""; f.points = ""; }
     render();
     toast(`Added ${plural(n, "card")} to ${col.title}`, { tone: "success", action: "Study now", onAction: () => navigate(`#/study/${col.id}`) });
     $("#builder-fields textarea, #builder-fields input")?.focus();

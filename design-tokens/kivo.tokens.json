@@ -1,0 +1,90 @@
+{
+  "$description": "Kivo design tokens — platform-neutral source (W3C Design Tokens format). Generate CSS custom properties for web and SwiftUI Color/Font/spacing constants for iOS from this file. Mirrors the 'Kivo' variable collections in Figma.",
+  "color": {
+    "primitive": {
+      "lavender": {
+        "50":  { "$type": "color", "$value": "#F7F5FD" },
+        "100": { "$type": "color", "$value": "#F1EEFB" },
+        "200": { "$type": "color", "$value": "#E2DCF6" },
+        "300": { "$type": "color", "$value": "#C6BCEC" },
+        "500": { "$type": "color", "$value": "#8977D6" },
+        "600": { "$type": "color", "$value": "#7562C7" },
+        "700": { "$type": "color", "$value": "#5E4DAE" }
+      },
+      "sage":  { "100": { "$type": "color", "$value": "#E7EFEB" }, "500": { "$type": "color", "$value": "#87A99B" }, "700": { "$type": "color", "$value": "#4F7A68" } },
+      "peach": { "100": { "$type": "color", "$value": "#FCEDE5" }, "500": { "$type": "color", "$value": "#F3B99F" }, "700": { "$type": "color", "$value": "#A85B3A" } },
+      "neutral": {
+        "0":   { "$type": "color", "$value": "#FFFFFF" },
+        "25":  { "$type": "color", "$value": "#FAFAF8" },
+        "50":  { "$type": "color", "$value": "#F4F4F1" },
+        "100": { "$type": "color", "$value": "#ECECE8" },
+        "200": { "$type": "color", "$value": "#DEDED9" },
+        "300": { "$type": "color", "$value": "#C4C4BF" },
+        "500": { "$type": "color", "$value": "#8A8A90" },
+        "600": { "$type": "color", "$value": "#6B6B73" },
+        "700": { "$type": "color", "$value": "#4A4A52" },
+        "900": { "$type": "color", "$value": "#24242A" }
+      },
+      "green": { "100": { "$type": "color", "$value": "#E3F1E8" }, "700": { "$type": "color", "$value": "#2F7A4D" } },
+      "amber": { "100": { "$type": "color", "$value": "#FBF0D9" }, "700": { "$type": "color", "$value": "#8A5A0B" } },
+      "red":   { "100": { "$type": "color", "$value": "#FBE4E2" }, "700": { "$type": "color", "$value": "#B23B32" } }
+    },
+    "semantic": {
+      "$description": "Each semantic token has a light and dark value. Web: :root / [data-theme=dark]. iOS: asset-catalog color with Any/Dark appearances.",
+      "bg":             { "$type": "color", "light": "{color.primitive.neutral.25}",  "dark": "#17171B" },
+      "surface":        { "$type": "color", "light": "{color.primitive.neutral.0}",   "dark": "#1F1F24" },
+      "surface-muted":  { "$type": "color", "light": "{color.primitive.neutral.50}",  "dark": "#26262C" },
+      "border":         { "$type": "color", "light": "{color.primitive.neutral.100}", "dark": "#2E2E35" },
+      "border-strong":  { "$type": "color", "light": "{color.primitive.neutral.200}", "dark": "#3A3A42" },
+      "text":           { "$type": "color", "light": "{color.primitive.neutral.900}", "dark": "#EEEEF0" },
+      "text-secondary": { "$type": "color", "light": "{color.primitive.neutral.600}", "dark": "#A9A9B2" },
+      "text-tertiary":  { "$type": "color", "light": "{color.primitive.neutral.500}", "dark": "#8A8A93" },
+      "accent":         { "$type": "color", "light": "{color.primitive.lavender.500}", "dark": "#9C8BE3" },
+      "accent-hover":   { "$type": "color", "light": "{color.primitive.lavender.600}", "dark": "#AE9FEA" },
+      "accent-text":    { "$type": "color", "light": "{color.primitive.lavender.700}", "dark": "#BDB1F0" },
+      "accent-subtle":  { "$type": "color", "light": "{color.primitive.lavender.100}", "dark": "#2C2840" },
+      "success-bg":     { "$type": "color", "light": "{color.primitive.green.100}", "dark": "#1F3328" },
+      "success-text":   { "$type": "color", "light": "{color.primitive.green.700}", "dark": "#8FD1A8" },
+      "warning-bg":     { "$type": "color", "light": "{color.primitive.amber.100}", "dark": "#3A2F17" },
+      "warning-text":   { "$type": "color", "light": "{color.primitive.amber.700}", "dark": "#E8C277" },
+      "danger-bg":      { "$type": "color", "light": "{color.primitive.red.100}", "dark": "#3D2220" },
+      "danger-text":    { "$type": "color", "light": "{color.primitive.red.700}", "dark": "#F0A099" },
+      "rating-again":   { "$type": "color", "light": "{color.primitive.red.700}",      "dark": "#F0A099" },
+      "rating-hard":    { "$type": "color", "light": "{color.primitive.amber.700}",    "dark": "#E8C277" },
+      "rating-good":    { "$type": "color", "light": "{color.primitive.green.700}",    "dark": "#8FD1A8" },
+      "rating-easy":    { "$type": "color", "light": "{color.primitive.lavender.700}", "dark": "#BDB1F0" }
+    }
+  },
+  "typography": {
+    "$description": "Web uses Inter. iOS uses SF Pro (system) at the same sizes, mapped to Dynamic Type styles so text scales with the user's setting.",
+    "display": { "$type": "typography", "$value": { "fontSize": 32, "lineHeight": 40, "fontWeight": 600 }, "ios": "largeTitle" },
+    "title":   { "$type": "typography", "$value": { "fontSize": 24, "lineHeight": 32, "fontWeight": 600 }, "ios": "title2" },
+    "heading": { "$type": "typography", "$value": { "fontSize": 18, "lineHeight": 26, "fontWeight": 600 }, "ios": "headline" },
+    "subhead": { "$type": "typography", "$value": { "fontSize": 15, "lineHeight": 22, "fontWeight": 600 }, "ios": "subheadline.semibold" },
+    "card":    { "$type": "typography", "$value": { "fontSize": 22, "lineHeight": 32, "fontWeight": 500 }, "ios": "title3" },
+    "body":    { "$type": "typography", "$value": { "fontSize": 14, "lineHeight": 22, "fontWeight": 400 }, "ios": "body" },
+    "label":   { "$type": "typography", "$value": { "fontSize": 13, "lineHeight": 18, "fontWeight": 500 }, "ios": "callout.medium" },
+    "caption": { "$type": "typography", "$value": { "fontSize": 12, "lineHeight": 16, "fontWeight": 400 }, "ios": "caption" },
+    "overline":{ "$type": "typography", "$value": { "fontSize": 11, "lineHeight": 16, "fontWeight": 600, "letterSpacing": 0.66, "textCase": "uppercase" }, "ios": "caption2.semibold" }
+  },
+  "space": {
+    "1": { "$type": "dimension", "$value": 4 },  "2": { "$type": "dimension", "$value": 8 },
+    "3": { "$type": "dimension", "$value": 12 }, "4": { "$type": "dimension", "$value": 16 },
+    "5": { "$type": "dimension", "$value": 20 }, "6": { "$type": "dimension", "$value": 24 },
+    "8": { "$type": "dimension", "$value": 32 }, "10": { "$type": "dimension", "$value": 40 },
+    "12": { "$type": "dimension", "$value": 48 }, "16": { "$type": "dimension", "$value": 64 }
+  },
+  "radius": {
+    "xs": { "$type": "dimension", "$value": 4 }, "sm": { "$type": "dimension", "$value": 6 },
+    "md": { "$type": "dimension", "$value": 8 }, "lg": { "$type": "dimension", "$value": 12 },
+    "xl": { "$type": "dimension", "$value": 16 }, "full": { "$type": "dimension", "$value": 999 }
+  },
+  "elevation": {
+    "1": { "$type": "shadow", "$value": { "x": 0, "y": 1, "blur": 2,  "color": "#24242A", "alpha": 0.05 } },
+    "2": { "$type": "shadow", "$value": { "x": 0, "y": 2, "blur": 8,  "color": "#24242A", "alpha": 0.06 } },
+    "3": { "$type": "shadow", "$value": { "x": 0, "y": 12, "blur": 32, "color": "#24242A", "alpha": 0.12 } }
+  },
+  "touch": {
+    "min-target": { "$type": "dimension", "$value": 44, "$description": "Minimum hit area on touch platforms (Apple HIG 44pt)." }
+  }
+}

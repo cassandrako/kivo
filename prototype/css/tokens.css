@@ -1,0 +1,168 @@
+/* ==========================================================================
+   Kivo design tokens
+   Single source of truth for color, type, spacing, radii and elevation.
+   Mirrors the "Kivo / Foundations" variable collections in Figma.
+   ========================================================================== */
+
+:root {
+  /* ---- Brand primitives ------------------------------------------------ */
+  --lavender-50:  #F7F5FD;
+  --lavender-100: #F1EEFB;   /* pale lavender */
+  --lavender-200: #E2DCF6;
+  --lavender-300: #C6BCEC;
+  --lavender-500: #8977D6;   /* soft lavender — primary accent */
+  --lavender-600: #7562C7;
+  --lavender-700: #5E4DAE;   /* AA text on white */
+
+  --sage-100: #E7EFEB;
+  --sage-500: #87A99B;
+  --sage-700: #4F7A68;
+
+  --peach-100: #FCEDE5;
+  --peach-500: #F3B99F;
+  --peach-700: #A85B3A;
+
+  --neutral-0:   #FFFFFF;
+  --neutral-25:  #FAFAF8;    /* off-white background */
+  --neutral-50:  #F4F4F1;
+  --neutral-100: #ECECE8;
+  --neutral-200: #DEDED9;
+  --neutral-300: #C4C4BF;
+  --neutral-500: #8A8A90;
+  --neutral-600: #6B6B73;
+  --neutral-700: #4A4A52;
+  --neutral-900: #24242A;    /* deep charcoal */
+
+  /* Status (always paired with a text label — never color alone) */
+  --green-100: #E3F1E8;  --green-700: #2F7A4D;
+  --amber-100: #FBF0D9;  --amber-700: #8A5A0B;
+  --red-100:   #FBE4E2;  --red-700:   #B23B32;
+
+  /* ---- Semantic: light (default) -------------------------------------- */
+  --color-bg:              var(--neutral-25);
+  --color-surface:         var(--neutral-0);
+  --color-surface-muted:   var(--neutral-50);
+  --color-surface-raised:  var(--neutral-0);
+  --color-surface-accent:  var(--lavender-100);
+  --color-border:          var(--neutral-100);
+  --color-border-strong:   var(--neutral-200);
+  --color-text:            var(--neutral-900);
+  --color-text-secondary:  var(--neutral-600);
+  --color-text-tertiary:   var(--neutral-500);
+  --color-text-on-accent:  var(--neutral-0);
+  --color-accent:          var(--lavender-500);
+  --color-accent-hover:    var(--lavender-600);
+  --color-accent-text:     var(--lavender-700);
+  --color-accent-subtle:   var(--lavender-100);
+  --color-focus:           var(--lavender-500);
+  --color-sage:            var(--sage-500);
+  --color-sage-subtle:     var(--sage-100);
+  --color-sage-text:       var(--sage-700);
+  --color-peach:           var(--peach-500);
+  --color-peach-subtle:    var(--peach-100);
+  --color-peach-text:      var(--peach-700);
+  --color-success-bg: var(--green-100); --color-success-text: var(--green-700);
+  --color-warning-bg: var(--amber-100); --color-warning-text: var(--amber-700);
+  --color-danger-bg:  var(--red-100);   --color-danger-text:  var(--red-700);
+
+  /* Review ratings */
+  --rating-again: var(--red-700);
+  --rating-hard:  var(--amber-700);
+  --rating-good:  var(--green-700);
+  --rating-easy:  var(--lavender-700);
+
+  /* ---- Typography ------------------------------------------------------ */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* type scale: size / line-height / weight */
+  --text-display: 600 32px/40px var(--font-sans);   /* page hero, greeting */
+  --text-title:   600 24px/32px var(--font-sans);   /* page titles */
+  --text-heading: 600 18px/26px var(--font-sans);   /* section headings */
+  --text-subhead: 600 15px/22px var(--font-sans);   /* card titles */
+  --text-body:    400 14px/22px var(--font-sans);   /* default body */
+  --text-body-strong: 500 14px/22px var(--font-sans);
+  --text-label:   500 13px/18px var(--font-sans);   /* buttons, labels */
+  --text-caption: 400 12px/16px var(--font-sans);   /* metadata */
+  --text-overline: 600 11px/16px var(--font-sans);  /* section eyebrows */
+  --text-card:    500 22px/32px var(--font-sans);   /* flashcard prompt */
+
+  /* ---- Spacing (4px base) --------------------------------------------- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Radii ----------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* ---- Elevation ------------------------------------------------------- */
+  --shadow-1: 0 1px 2px rgba(36, 36, 42, 0.05);
+  --shadow-2: 0 2px 8px rgba(36, 36, 42, 0.06), 0 1px 2px rgba(36, 36, 42, 0.04);
+  --shadow-3: 0 12px 32px rgba(36, 36, 42, 0.12), 0 2px 6px rgba(36, 36, 42, 0.06);
+
+  /* ---- Layout ---------------------------------------------------------- */
+  --sidebar-width: 248px;
+  --content-max: 1120px;
+
+  /* ---- Motion ---------------------------------------------------------- */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  color-scheme: light;
+}
+
+/* ---- Semantic: dark --------------------------------------------------- */
+:root[data-theme="dark"] {
+  --color-bg:              #17171B;
+  --color-surface:         #1F1F24;
+  --color-surface-muted:   #26262C;
+  --color-surface-raised:  #2A2A31;
+  --color-surface-accent:  #2C2840;
+  --color-border:          #2E2E35;
+  --color-border-strong:   #3A3A42;
+  --color-text:            #EEEEF0;
+  --color-text-secondary:  #A9A9B2;
+  --color-text-tertiary:   #8A8A93;
+  --color-accent:          #9C8BE3;
+  --color-accent-hover:    #AE9FEA;
+  --color-accent-text:     #BDB1F0;
+  --color-accent-subtle:   #2C2840;
+  --color-sage-subtle:     #22302A;
+  --color-sage-text:       #A6C6B8;
+  --color-peach-subtle:    #3A2A23;
+  --color-peach-text:      #F3B99F;
+  --color-success-bg: #1F3328; --color-success-text: #8FD1A8;
+  --color-warning-bg: #3A2F17; --color-warning-text: #E8C277;
+  --color-danger-bg:  #3D2220; --color-danger-text:  #F0A099;
+  --rating-again: #F0A099;
+  --rating-hard:  #E8C277;
+  --rating-good:  #8FD1A8;
+  --rating-easy:  #BDB1F0;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-2: 0 2px 8px rgba(0,0,0,.35);
+  --shadow-3: 0 12px 32px rgba(0,0,0,.5);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

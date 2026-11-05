@@ -1,0 +1,10 @@
+{
+  "name": "Kivo",
+  "short_name": "Kivo",
+  "description": "Learn smarter. Remember longer.",
+  "start_url": "./#/home",
+  "display": "standalone",
+  "background_color": "#FAFAF8",
+  "theme_color": "#8977D6",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

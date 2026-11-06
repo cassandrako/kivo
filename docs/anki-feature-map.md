@@ -25,13 +25,13 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | Basic (and reversed card) | Basic + reversed (two cards) | ✅ |
 | Basic (type in the answer) | Left out: recall is judged by the student, not by typing | ➖ |
 | Cloze, `{{c1::…}}`, hints `{{c1::…::hint}}`, several clozes per note | Same syntax under the hood. Select text and choose **Hide as new card** or **Hide in same card**; no typing braces. | ✅ |
-| Image Occlusion | Built-in schematic diagram with selectable labels; one card per hidden label | ✅ |
-| Image Occlusion with your own images | Upload an image and draw boxes | 🔜 |
+| Image Occlusion | Paste (⌘V), drop or choose your own image. **Box** tool: drag over a label, or tap to drop a box. **Arrow** tool: tap a structure to point an arrow at it and type the answer (drag to place the answer tag). **Select** tool: move, resize, delete. One card per mask; “Hide all, guess one” or “Hide one, guess one”. A sample skull-base diagram is still available. | ✅ |
+| (no equivalent; students white out labels in Preview or on an iPad first) | **Hide all text**: Kivo finds the printed labels on a diagram and covers each one, so the original labelled image works as is. Two-line labels become one mask; numbered lists stay one mask per item. Undo if it covers too much. | ✅ |
 | Note types and card templates in HTML/CSS | Fixed, well-designed templates with a live preview. No HTML or CSS. | ➖ by design |
 | Add dialog, with deck chooser | **Add card**, always one click away (sidebar, collection header, keyboard `A`). Like Anki’s deck chooser, pick the course and then the collection, or make a new collection from the picker. It opens on the course or collection you were viewing. | ✅ |
 | Edit a note | Click any card in a collection, or press `E` during review | ✅ |
 | Duplicate check on add | Duplicate check on import (same front text in the course) | ✅ (import) · 🔜 (while typing) |
-| Media: images, audio, LaTeX/MathJax | Images arrive with image occlusion uploads; audio and equations later | 🔜 / ⏳ |
+| Media: images, audio, LaTeX/MathJax | Images on the front or back of Basic and Reversed cards, and on Cloze cards: paste, drop or choose. Stored in the browser (IndexedDB), resized to 2000 px. Audio and equations later. | ✅ images · 🔜 audio, equations |
 | (no equivalent) | **Key points** on multi-part answers, ticked off during review to suggest a rating | ✅ |
 
 ## Browser

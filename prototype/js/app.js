@@ -81,12 +81,19 @@
     return text.replace(/\{\{(?!c\d+::)(.+?)\}\}/g, (_, inner) => `{{c${next++}::${inner}}}`);
   }
   const TYPE_LABEL = { basic: "Basic", reverse: "Basic + reversed", cloze: "Cloze", occlusion: "Image occlusion" };
+  const imgTag = (id, cls = "fc__img") => id && window.KivoMedia.has(id) ? `<img class="${cls}" src="${window.KivoMedia.url(id)}" alt="" draggable="false">` : "";
   function cardFaces(c, n = S.note(c.noteId)) {
     const f = n.fields;
-    if (n.type === "cloze") return { front: `<p class="fc__prompt">${clozeHtml(f.text, c.ord, "front")}</p>`, back: `<p class="fc__prompt">${clozeHtml(f.text, c.ord, "back")}</p>${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}`, q: strip(f.text), a: (f.text.match(new RegExp(`\\{\\{c${c.ord}::(.+?)(::|\\}\\})`)) || [])[1] || "" };
+    if (n.type === "occlusion" && f.image) {
+      const m = f.masks[c.ord] || {}, prompt = f.prompt?.trim() || (m.kind === "arrow" ? "What is the arrow pointing to?" : "What is hidden?");
+      return { front: `<p class="fc__prompt fc__prompt--sm">${esc(prompt)}</p>${window.KivoOcc.face(f, c.ord)}`, back: `<p class="fc__prompt fc__prompt--sm">${esc(prompt)}</p>${window.KivoOcc.face(f, c.ord, { reveal: true })}${m.label ? `<p class="fc__answer">${esc(m.label)}</p>` : ""}${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}`, q: prompt, a: m.label || window.KivoOcc.maskName(m, c.ord), img: f.image };
+    }
+    if (n.type === "cloze") return { front: `${imgTag(f.img)}<p class="fc__prompt">${clozeHtml(f.text, c.ord, "front")}</p>`, back: `${imgTag(f.img)}<p class="fc__prompt">${clozeHtml(f.text, c.ord, "back")}</p>${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}`, img: f.img, q: strip(f.text), a: (f.text.match(new RegExp(`\\{\\{c${c.ord}::(.+?)(::|\\}\\})`)) || [])[1] || "" };
     if (n.type === "occlusion") { const target = f.masked[c.ord]; return { front: `<p class="fc__prompt fc__prompt--sm">${esc(f.prompt)}</p>${occlusionSvg({ target })}`, back: `<p class="fc__prompt fc__prompt--sm">${esc(f.prompt)}</p>${occlusionSvg({ target, reveal: true })}<p class="fc__answer">${esc(target)}</p>${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}`, q: f.prompt, a: target }; }
-    const [q, a] = n.type === "reverse" && c.ord === 1 ? [f.back, f.front] : [f.front, f.back];
-    return { front: `<p class="fc__prompt">${esc(q)}</p>`, back: `<p class="fc__prompt">${esc(q)}</p><hr class="fc__rule"><p class="fc__answer">${esc(a)}</p>${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}`, q, a };
+    const flip = n.type === "reverse" && c.ord === 1;
+    const [q, a] = flip ? [f.back, f.front] : [f.front, f.back], [qi, ai] = flip ? [f.backImg, f.frontImg] : [f.frontImg, f.backImg];
+    const qHtml = `${imgTag(qi)}${q ? `<p class="fc__prompt">${esc(q)}</p>` : ""}`;
+    return { front: qHtml, back: `${qHtml}<hr class="fc__rule">${imgTag(ai)}${a ? `<p class="fc__answer">${esc(a)}</p>` : ""}${f.extra ? `<p class="fc__extra">${esc(f.extra)}</p>` : ""}`, q: q || (qi ? "Image" : ""), a: a || (ai ? "Image" : ""), img: qi || ai };
   }
   const notePoints = (c, n = S.note(c.noteId)) => (n.type === "basic" || (n.type === "reverse" && c.ord === 0)) ? String(n.fields.points || "").split(",").map((p) => p.trim()).filter(Boolean) : [];
   function dueLabel(c) {
@@ -495,7 +502,7 @@
         const n = notesById.get(c.noteId), f = cardFaces(c, n), due = dueLabel(c);
         return `<li class="card-row ${c.suspended ? "is-suspended" : ""}">
           <a class="card-row__link" href="#/builder/${deckId}?note=${n.id}" aria-label="Edit card: ${esc(f.q.slice(0, 80))}"></a>
-          <div class="card-row__body"><p class="card-row__front">${n.type === "cloze" ? clozeHtml(n.fields.text, c.ord, "front") : esc(f.q)}</p><p class="card-row__back">${esc(f.a)}</p></div>
+          <div class="card-row__body">${f.img ? imgTag(f.img, "card-row__thumb") : ""}<p class="card-row__front">${n.type === "cloze" ? clozeHtml(n.fields.text, c.ord, "front") : esc(f.q)}</p><p class="card-row__back">${esc(f.a)}</p></div>
           <div class="card-row__meta">${c.flag ? `<span class="flag" title="Flagged">${icon("flag", 14)}</span>` : ""}${n.type !== "basic" ? `<span class="card-row__type">${esc(TYPE_LABEL[n.type])}${S.cardOrds(n).length > 1 ? ` · ${n.type === "cloze" ? "c" + c.ord : n.type === "reverse" ? (c.ord ? "back" : "front") : "#" + (c.ord + 1)}` : ""}</span>` : ""}<span class="status status--${due.tone}">${esc(due.text)}</span>
             ${menu("card-" + c.id, [{ label: "Edit", icon: "edit", action: "go", data: { href: `#/builder/${deckId}?note=${n.id}` } }, { label: c.suspended ? "Unsuspend" : "Suspend", icon: "pause", action: "card-suspend", data: { id: c.id } }, { label: c.flag ? "Remove flag" : "Flag", icon: "flag", action: "card-flag", data: { id: c.id } }, { label: "Reset to new", icon: "refresh", action: "card-reset", data: { id: c.id } }, "-", { label: "Delete note", icon: "trash", action: "note-delete", data: { id: n.id }, danger: true }])}
           </div>
@@ -511,7 +518,7 @@
     { id: "cloze", name: "Cloze deletion", desc: "Hide words in a sentence. Each hidden part is its own card.", best: "Pathways, lists" },
     { id: "occlusion", name: "Image occlusion", desc: "Hide labels on a diagram and recall them.", best: "Anatomy, foramina" },
   ];
-  const blankFields = () => ({ basic: { front: "", back: "", extra: "", points: "" }, reverse: { front: "", back: "", extra: "" }, cloze: { text: "", extra: "" }, occlusion: { prompt: "Identify the masked foramen.", masked: [], extra: "" } });
+  const blankFields = () => ({ basic: { front: "", back: "", extra: "", points: "" }, reverse: { front: "", back: "", extra: "" }, cloze: { text: "", extra: "" }, occlusion: { image: null, masks: [], mode: "all", sample: false, prompt: "", masked: [], extra: "" } });
   /* Which collection a new card goes into:
      1. the collection in the URL; 2. the course/exam in the URL or the page you came from
      (newest collection there, or none yet: ask to make one); 3. the last collection you added to;
@@ -618,6 +625,20 @@
       </div>`;
   }
   const templateArt = (id) => ({ basic: `<span class="ta ta-basic"><i></i><i></i></span>`, reverse: `<span class="ta ta-rev"><i></i><b></b></span>`, cloze: `<span class="ta ta-cloze"><i></i><b></b><i></i></span>`, occlusion: `<span class="ta ta-occ"><i></i><b></b><b></b></span>` }[id]);
+  function imgSlot(key, label = "Image") {
+    const f = state.builder.fields[state.builder.type], id = f[key];
+    return `<div class="img-slot" data-img-slot="${key}">${id && window.KivoMedia.has(id)
+      ? `<figure class="img-slot__fig">${imgTag(id, "img-slot__img")}<figcaption><button type="button" class="link link--muted" data-action="img-remove" data-key="${key}">Remove image</button>${state.builder.type !== "occlusion" ? `<button type="button" class="link" data-action="img-to-occ" data-key="${key}">Make an image occlusion card from it</button>` : ""}</figcaption></figure>`
+      : `<label class="img-slot__add">${icon("image", 14)}<span>Add ${label.toLowerCase()}</span><input type="file" accept="image/*" data-img-file="${key}" hidden></label><span class="caption img-slot__hint">or paste with ⌘V</span>`}</div>`;
+  }
+  function occEditor() {
+    const f = state.builder.fields.occlusion;
+    if (f.image) return `<div class="occx" id="occx" data-occ-drop>${window.KivoOcc.editorHtml(f, occUi())}</div>`;
+    if (f.sample || f.masked.length) return `<div class="occ-editor">${occlusionSvg({ masked: f.masked, interactive: true })}</div>
+        <span class="field__hint">${icon("image", 12)} Sample: skull base, internal view. Select the labels to hide: ${plural(f.masked.length, "hidden label")} → ${plural(f.masked.length, "card")}. <button type="button" class="link" data-occ="unsample">Use your own image instead</button></span>`;
+    return window.KivoOcc.dropzoneHtml();
+  }
+  const occUi = () => (state.builder.occ ||= { tool: "box", sel: null, draft: null, busy: false });
   function builderFields() {
     const b = state.builder, f = b.fields[b.type];
     const field = (key, label, { area = false, rows = 3, hint = "", placeholder = "" } = {}) => `
@@ -625,18 +646,17 @@
         ${area ? `<textarea rows="${rows}" id="bf-${key}" data-input="builder" data-key="${key}" placeholder="${esc(placeholder)}">${esc(f[key])}</textarea>` : `<input id="bf-${key}" data-input="builder" data-key="${key}" value="${esc(f[key])}" placeholder="${esc(placeholder)}">`}
         ${hint ? `<span class="field__hint">${hint}</span>` : ""}</label>`;
     switch (b.type) {
-      case "basic": return field("front", "Front", { area: true, placeholder: "Which nerve innervates the lateral rectus?" }) + field("back", "Back", { area: true, rows: 2, placeholder: "Abducens nerve (CN VI)" }) +
+      case "basic": return field("front", "Front", { area: true, placeholder: "Which nerve innervates the lateral rectus?" }) + imgSlot("frontImg", "Image to the front") + field("back", "Back", { area: true, rows: 2, placeholder: "Abducens nerve (CN VI)" }) + imgSlot("backImg", "Image to the back") +
         field("points", "Key points <small>optional</small>", { hint: "For answers with several parts. Separate with commas; while reviewing you tick the ones you recalled.", placeholder: "e.g. Ptosis, Miosis, Anhidrosis" }) +
         field("extra", "Extra <small>optional</small>", { area: true, rows: 2, hint: "Shown after the answer: mnemonics, clinical pearls, sources." });
-      case "reverse": return field("front", "Front", { area: true, placeholder: "Abducens nerve (CN VI)" }) + field("back", "Back", { area: true, rows: 2, placeholder: "Innervates the lateral rectus" }) + field("extra", "Extra <small>optional</small>", { area: true, rows: 2 });
+      case "reverse": return field("front", "Front", { area: true, placeholder: "Abducens nerve (CN VI)" }) + imgSlot("frontImg", "Image to the front") + field("back", "Back", { area: true, rows: 2, placeholder: "Innervates the lateral rectus" }) + imgSlot("backImg", "Image to the back") + field("extra", "Extra <small>optional</small>", { area: true, rows: 2 });
       case "cloze": {
         const nums = S.clozeNums(normalizeCloze(f.text || ""));
         return `<label class="field"><span class="field__label">Text</span><textarea rows="4" id="cloze-text" data-input="builder" data-key="text" placeholder="The superior oblique is innervated by the trochlear nerve.">${esc(f.text)}</textarea>
           <span class="field__hint">Select words, then <button class="btn btn--secondary btn--xs" data-action="cloze-wrap">Hide as new card</button> or <button class="btn btn--ghost btn--xs" data-action="cloze-wrap" data-same="1">Hide in same card</button>.<span class="cloze-count"> ${nums.length ? `This makes ${plural(nums.length, "card")}.` : "Nothing hidden yet."}</span></span></label>` +
-          field("extra", "Extra <small>optional</small>", { area: true, rows: 2 });
+          imgSlot("img", "Image") + field("extra", "Extra <small>optional</small>", { area: true, rows: 2 });
       }
-      case "occlusion": return field("prompt", "Prompt") + `<div class="field"><span class="field__label">Diagram</span><div class="occ-editor">${occlusionSvg({ masked: f.masked, interactive: true })}</div>
-        <span class="field__hint">${icon("image", 12)} Skull base, internal view (schematic). Select the labels to hide: ${plural(f.masked.length, "hidden label")} → ${plural(f.masked.length, "card")}. Uploading your own images is coming next.</span></div>` + field("extra", "Extra <small>optional</small>", { area: true, rows: 2 });
+      case "occlusion": return field("prompt", "Prompt <small>optional</small>", { placeholder: "e.g. Name the structure" }) + `<div class="field"><span class="field__label">Diagram</span>${occEditor()}</div>` + field("extra", "Extra <small>optional</small>", { area: true, rows: 2 });
     }
     return "";
   }
@@ -647,9 +667,9 @@
   }
   function builderPreview() {
     const b = state.builder, n = builderNote(), ords = S.cardOrds(n);
-    if (!ords.length) return `<div class="flashcard flashcard--preview"><div class="flashcard__body"><p class="caption">${b.type === "cloze" ? "Hide at least one part of the text to make a card." : "Select at least one label to hide."}</p></div></div>`;
+    if (!ords.length) return `<div class="flashcard flashcard--preview"><div class="flashcard__body"><p class="caption">${b.type === "cloze" ? "Hide at least one part of the text to make a card." : b.fields.occlusion.image ? "Draw a box over a label, or tap the diagram to add an arrow." : b.fields.occlusion.sample ? "Select at least one label to hide." : "Add a diagram to start."}</p></div></div>`;
     const ord = ords.includes(b.previewOrd) ? b.previewOrd : ords[0];
-    const faces = cardFaces({ noteId: n.id, ord }, n), pts = notePoints({ ord }, n), empty = !strip(faces.q).trim();
+    const faces = cardFaces({ noteId: n.id, ord }, n), pts = notePoints({ ord }, n), empty = !strip(faces.q).trim() && !faces.img;
     return `
       ${ords.length > 1 ? `<div class="preview-ords" role="group" aria-label="Preview card">${ords.map((o, i) => `<button class="tab ${o === ord ? "is-active" : ""}" data-action="builder-ord" data-value="${o}">Card ${i + 1}</button>`).join("")}</div>` : ""}
       <div class="flashcard flashcard--preview">
@@ -662,9 +682,9 @@
   function saveBuilder() {
     const b = state.builder, n = builderNote();
     const err = b.type === "cloze" ? (!S.clozeNums(n.fields.text).length && "Hide at least one word or phrase. Select it and use “Hide as new card”.")
-      : b.type === "occlusion" ? (!n.fields.masked.length && "Select at least one label on the diagram to hide.")
-      : (!n.fields.front.trim() ? "Add the front of the card." : !n.fields.back.trim() ? "Add the back of the card." : "");
-    if (err) { formError(err, b.type === "cloze" ? $("#cloze-text") : b.type === "occlusion" ? null : (!n.fields.front.trim() ? $("#bf-front") : $("#bf-back"))); return; }
+      : b.type === "occlusion" ? (n.fields.image ? (!n.fields.masks.length ? "Draw at least one box or arrow on the diagram." : (() => { const i = n.fields.masks.findIndex((m) => m.kind === "arrow" && !m.label?.trim()); return i >= 0 ? `Type the answer for arrow ${i + 1}.` : ""; })()) : !n.fields.masked.length && (n.fields.sample ? "Select at least one label on the diagram to hide." : "Add a diagram: paste, drop or choose an image."))
+      : (!n.fields.front.trim() && !n.fields.frontImg ? "Add the front of the card." : !n.fields.back.trim() && !n.fields.backImg ? "Add the back of the card." : "");
+    if (err) { if (b.type === "occlusion" && n.fields.image) { const i = n.fields.masks.findIndex((m) => m.kind === "arrow" && !m.label?.trim()); if (i >= 0) { occUi().sel = i; occRedraw(); $("#occ-label")?.focus(); } } formError(err, b.type === "cloze" ? $("#cloze-text") : b.type === "occlusion" ? null : (!n.fields.front.trim() ? $("#bf-front") : $("#bf-back"))); return; }
     const tags = b.tags.split(",").map((t) => t.trim()).filter(Boolean);
     if (b.noteId && S.note(b.noteId)?.tags.includes("leech")) tags.push("leech");
     const saved = S.saveNote({ ...(b.noteId ? { id: b.noteId } : {}), deckId: b.deckId, type: b.type, fields: n.fields, tags, section: b.section.trim() });
@@ -677,7 +697,7 @@
       navigate(r || `#/collection/${saved.deckId}`);
       return;
     }
-    b.added += count; b.fields[b.type] = blankFields()[b.type];
+    b.added += count; b.fields[b.type] = blankFields()[b.type]; b.occ = null;
     render();
     toast(`Added ${plural(count, "card")} to ${S.deck(b.deckId).title}`, { tone: "success", action: "Undo", onAction: () => { S.removeNote(saved.id); b.added -= count; render(); toast("Removed"); } });
     $("#builder-fields textarea, #builder-fields input")?.focus();
@@ -871,7 +891,7 @@
     const courseIds = new Set(S.db.decks.filter((d) => ids.has(d.id)).map((d) => d.courseId));
     const inScope = S.db.notes.filter((n) => ids.has(n.deckId));
     const wide = S.db.notes.filter((n) => courseIds.has(S.deck(n.deckId)?.courseId));
-    const answersOf = (list) => list.flatMap((n) => n.type === "basic" || n.type === "reverse" ? [{ a: cleanAns(n.fields.back) }] : n.type === "cloze" ? [...n.fields.text.matchAll(/\{\{c\d+::(.+?)(::|\}\})/g)].map((m) => ({ a: m[1] })) : n.type === "occlusion" ? n.fields.masked.map((a) => ({ a })) : []);
+    const answersOf = (list) => list.flatMap((n) => n.type === "basic" || n.type === "reverse" ? [{ a: cleanAns(n.fields.back) }] : n.type === "cloze" ? [...n.fields.text.matchAll(/\{\{c\d+::(.+?)(::|\}\})/g)].map((m) => ({ a: m[1] })) : n.type === "occlusion" ? (n.fields.image ? n.fields.masks.filter((m) => m.label?.trim()).map((m) => ({ a: m.label.trim() })) : n.fields.masked.map((a) => ({ a }))) : []);
     const poolScope = answersOf(inScope), poolWide = answersOf(wide);
     const distractors = (correct, kind, seed) => {
       const close = (pool) => pool.filter((p) => norm(p.a) !== norm(correct) && p.a.length < correct.length * 2.6 + 8 && correct.length < p.a.length * 2.6 + 8);
@@ -893,6 +913,12 @@
         } else if (opts.mcq && others.length >= 3) { const options = shuffle([ans, ...others], seed + 3); qs.push({ kind: "mcq", prompt: strip(n.fields.text.replace(m[0], "_____")), options, answer: options.indexOf(ans), note: n }); }
       } else if (n.type === "occlusion") {
         if (!opts.mcq) return;
+        if (n.fields.image) {
+          const ord = n.fields.masks.findIndex((m) => m.label?.trim()); if (ord < 0) return;
+          const ans = n.fields.masks[ord].label.trim(), others = distractors(ans, "image", seed);
+          if (others.length >= 3) { const options = shuffle([ans, ...others], seed); qs.push({ kind: "mcq", prompt: n.fields.prompt?.trim() || "What is hidden?", occ: { fields: n.fields, ord }, options, answer: options.indexOf(ans), note: n }); }
+          return;
+        }
         const ans = n.fields.masked[0], others = distractors(ans, "occlusion", seed);
         if (others.length >= 3) { const options = shuffle([ans, ...others], seed); qs.push({ kind: "mcq", prompt: n.fields.prompt, diagram: ans, options, answer: options.indexOf(ans), note: n }); }
       } else {
@@ -948,7 +974,7 @@
           <div class="flashcard__meta"><span class="chip chip--${item.kind === "mcq" ? "lavender" : "sage"}">${item.kind === "mcq" ? "Multiple choice" : "True or false"}</span><span class="caption">${esc(S.deck(item.note.deckId)?.title || "")}</span></div>
           <div class="flashcard__body">
             <p class="fc__prompt">${esc(item.prompt)}</p>
-            ${item.diagram ? occlusionSvg({ target: item.diagram, reveal: q.checked }) : ""}
+            ${item.diagram ? occlusionSvg({ target: item.diagram, reveal: q.checked }) : item.occ ? window.KivoOcc.face(item.occ.fields, item.occ.ord, { reveal: q.checked }) : ""}
             <ol class="mcq mcq--interactive ${item.kind === "tf" ? "mcq--tf" : ""}">${item.options.map((o, i) => {
               const cls = q.checked ? (i === item.answer ? "is-correct" : i === q.picked ? "is-wrong" : "") : (i === q.picked ? "is-picked" : "");
               return `<li><button class="mcq__opt ${cls}" data-action="quiz-pick" data-index="${i}" ${q.checked ? "disabled" : ""} aria-pressed="${i === q.picked}"><span>${item.kind === "tf" ? (i === 0 ? "T" : "F") : String.fromCharCode(65 + i)}</span>${esc(o)}${q.checked && i === item.answer ? `<em>${icon("check", 14)}Correct answer</em>` : ""}${q.checked && i === q.picked && i !== item.answer ? `<em>${icon("x", 14)}Your answer</em>` : ""}</button></li>`; }).join("")}</ol>
@@ -1580,6 +1606,7 @@
     $("#nav-due").textContent = due || "";
     $$(".tabbar__badge").forEach((b) => { b.textContent = due; b.hidden = !due; });
     document.title = `${TITLES[r.name] || "Kivo"} · Kivo`;
+    if (r.name === "builder") mountOcc();
   }
   function navigate(hash) {
     const changed = hash !== currentRoute; currentRoute = hash;
@@ -1660,6 +1687,8 @@
       navigate(`#/collection/${d.id}`); toast(`Created ${title}`, { tone: "success", action: "Add card", onAction: () => navigate(`#/builder/${d.id}`) });
     },
     "deck-delete": (el) => { const d = S.deck(el.dataset.id); S.removeDeck(el.dataset.id); closeModal(true); navigate(`#/course/${d.courseId}`); toast(`Deleted ${d.title}`); },
+    "img-remove": (el) => { state.builder.fields[state.builder.type][el.dataset.key] = null; redrawFields(); },
+    "img-to-occ": (el) => { const b = state.builder, id = b.fields[b.type][el.dataset.key]; b.fields[b.type][el.dataset.key] = null; b.type = "occlusion"; Object.assign(b.fields.occlusion, { image: id, masks: [], sample: false, masked: [] }); b.occ = null; render(); },
     "deck-move": (el) => { el.closest("details")?.removeAttribute("open"); moveDeck(el.dataset.id, el.dataset.course ? { course: el.dataset.course } : { unit: el.dataset.unit || "" }); },
     "open-options": (el) => { el.closest("details")?.removeAttribute("open"); openOptions(el.dataset.course); },
     "course-sug": (el) => { $("#course-name").value = el.dataset.name; if (el.dataset.code && !$("#course-code").value) $("#course-code").value = el.dataset.code; $$(".chip-btn", el.parentElement).forEach((b) => b.classList.toggle("is-picked", b === el)); $("#course-name").focus(); },
@@ -1755,6 +1784,56 @@
     "suggestion-skip": (el) => { el.closest(".suggest-item").classList.add("is-done"); el.closest(".suggest-item__actions").innerHTML = `<span class="badge badge--neutral">Skipped</span>`; },
   };
   void keepValues;
+  /* ---------- images and image occlusion in the card editor --------------- */
+  function occRedraw(light) {
+    const box = $("#occx"); if (!box) return;
+    const f = state.builder.fields.occlusion, ui = occUi();
+    const focusLabel = ui.focusLabel; ui.focusLabel = false;
+    const keepLabel = document.activeElement?.id === "occ-label";
+    box.innerHTML = window.KivoOcc.editorHtml(f, ui); mountOcc();
+    if (!light) refreshPreview();
+    if (focusLabel || keepLabel) { const i = $("#occ-label"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+  }
+  function mountOcc() {
+    const box = $("#occx"); if (!box || !state.builder) return;
+    window.KivoOcc.attach(box, { fields: () => state.builder.fields.occlusion, ui: occUi(), redraw: (light) => occRedraw(light), changed: () => refreshPreview() });
+  }
+  const redrawFields = () => { const el = $("#builder-fields"); if (el) el.innerHTML = builderFields(); mountOcc(); refreshPreview(); };
+  async function addImage(file, key) {
+    const b = state.builder; if (!b || !file) return;
+    let id;
+    try { id = await window.KivoMedia.add(file); } catch { toast("That image couldn’t be read. Try a PNG or JPEG.", { tone: "danger" }); return; }
+    if (key === "occ" || (b.type === "occlusion" && !key)) {
+      const f = b.fields.occlusion; f.image = id; f.masks = []; f.sample = false; f.masked = []; b.occ = { tool: "box", sel: null, draft: null, busy: false };
+    } else {
+      const k = key || (b.type === "cloze" ? "img" : document.activeElement?.id === "bf-back" ? "backImg" : "frontImg");
+      b.fields[b.type][k] = id;
+    }
+    redrawFields();
+    if (!window.KivoMedia.persistent) toast("This browser won’t keep images after you close the tab.", { tone: "warning" });
+  }
+  async function autoHideText() {
+    const f = state.builder.fields.occlusion, ui = occUi(); if (!f.image || ui.busy) return;
+    ui.busy = true; occRedraw(true);
+    let boxes = [];
+    try { boxes = await window.KivoOcc.detectText(f.image); } catch { /* unreadable image */ }
+    ui.busy = false;
+    const fresh = boxes.filter((b) => !f.masks.some((m) => m.kind === "box" && window.KivoOcc.overlap(m, b) > 0.4));
+    const before = f.masks.slice();
+    f.masks.push(...fresh.map((b) => ({ kind: "box", ...b, label: "" })));
+    ui.sel = null; occRedraw();
+    toast(fresh.length ? `Whited out ${plural(fresh.length, "label")}. Remove any you want to keep visible.` : "No printed labels found. Draw boxes or arrows instead.", fresh.length ? { tone: "success", action: "Undo", onAction: () => { f.masks = before; occRedraw(); } } : {});
+  }
+  function onOccClick(el) {
+    const b = state.builder, f = b.fields.occlusion, ui = occUi(), k = el.dataset.occ;
+    if (k === "tool") { ui.tool = el.dataset.value; occRedraw(true); }
+    else if (k === "auto") autoHideText();
+    else if (k === "mode") { f.mode = el.dataset.value; occRedraw(); }
+    else if (k === "delete") { if (ui.sel != null) { f.masks.splice(ui.sel, 1); ui.sel = null; occRedraw(); } }
+    else if (k === "clear") { const before = f.masks.slice(); f.masks = []; ui.sel = null; occRedraw(); toast("Cleared all masks", { action: "Undo", onAction: () => { f.masks = before; occRedraw(); } }); }
+    else if (k === "sample") { f.sample = true; redrawFields(); }
+    else if (k === "unsample") { f.sample = false; f.masked = []; redrawFields(); }
+  }
   const refreshPreview = () => { const p = $("#builder-preview"); if (p) p.innerHTML = builderPreview(); };
   function refreshBrowser() { const b = $("#browser"); if (b) b.innerHTML = cardBrowser(parseRoute().id); }
 
@@ -1775,6 +1854,33 @@
     if (el.closest("details.menu")) el.closest("details.menu").open = false;
     fn(el, e);
   }
+  function onOccDocClick(e) {
+    if (document.body.classList.contains("is-onboarding")) return;
+    const el = e.target.closest?.("[data-occ]"); if (!el || el.tagName === "INPUT" || !state.builder) return;
+    e.preventDefault(); onOccClick(el);
+  }
+  function onBuilderPaste(e) {
+    if (parseRoute().name !== "builder" || !state.builder || $(".modal")) return;
+    const file = window.KivoMedia.fromTransfer(e.clipboardData); if (!file) return;
+    e.preventDefault(); addImage(file);
+  }
+  function onBuilderFile(e) {
+    const el = e.target; if (!state.builder || el.type !== "file") return;
+    const file = el.files?.[0]; if (!file) return;
+    if (el.dataset.occ === "file") addImage(file, "occ"); else if (el.dataset.imgFile) addImage(file, el.dataset.imgFile);
+  }
+  function onBuilderDrop(e) {
+    if (parseRoute().name !== "builder" || !state.builder) return;
+    const types = [...(e.dataTransfer?.types || [])]; if (!types.includes("Files")) return;
+    e.preventDefault();
+    const zone = e.target.closest?.("[data-occ-drop], [data-img-slot], .builder__form");
+    $$(".is-file-over").forEach((x) => x !== zone && x.classList.remove("is-file-over"));
+    if (e.type === "dragover") { zone?.classList.add("is-file-over"); return; }
+    $$(".is-file-over").forEach((x) => x.classList.remove("is-file-over"));
+    const file = window.KivoMedia.fromTransfer(e.dataTransfer); if (!file) return;
+    const slot = e.target.closest?.("[data-img-slot]")?.dataset.imgSlot;
+    addImage(file, e.target.closest?.("[data-occ-drop]") ? "occ" : slot);
+  }
   function onToggle(e) { if (e.target.matches?.(".menu--new") && e.target.open && ME) prefs.set(tourKey(), { ...prefs.get(tourKey(), {}), newMenu: true });
     if (e.target.matches?.("details[data-archive]")) { state.collapsed.__archive = e.target.open; prefs.set("collapsed", state.collapsed); } }
   function onInput(e) {
@@ -1782,6 +1888,10 @@
     const el = e.target, kind = el.dataset.input; if (!kind) return;
     if (kind === "library-query") { state.libraryQuery = el.value; $("#library-results").innerHTML = libraryResults(); }
     else if (kind === "browse-q") { state.browse.q = el.value; const pos = el.selectionStart; refreshBrowser(); const s = $("#browse-search"); s.focus(); s.setSelectionRange(pos, pos); }
+    else if (kind === "occ-label") {
+      const ui = occUi(), m = state.builder.fields.occlusion.masks[ui.sel]; if (!m) return;
+      m.label = el.value; const pos = el.selectionStart; occRedraw(); const i = $("#occ-label"); if (i) { i.focus(); i.setSelectionRange(pos, pos); }
+    }
     else if (kind === "builder") {
       state.builder.fields[state.builder.type][el.dataset.key] = el.value; refreshPreview();
       if (state.builder.type === "cloze") { const cnt = $(".cloze-count"); if (cnt) { const nums = S.clozeNums(normalizeCloze(el.value)); cnt.textContent = ` ${nums.length ? `This makes ${plural(nums.length, "card")}.` : "Nothing hidden yet."}`; } }
@@ -1816,6 +1926,9 @@
     }
   }
   function onKey(e) {
+    if (state.builder && state.builder.type === "occlusion" && $("#occx") && (e.key === "Delete" || e.key === "Backspace") && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "") && occUi().sel != null) {
+      e.preventDefault(); onOccClick({ dataset: { occ: "delete" } }); return;
+    }
     if (document.body.classList.contains("is-onboarding")) return;
     trapFocus(e);
     const r = parseRoute();
@@ -1853,6 +1966,8 @@
   }
 
   /* ---------- boot -------------------------------------------------------- */
+  const usedImages = () => S.db.notes.flatMap((n) => [n.fields?.image, n.fields?.frontImg, n.fields?.backImg, n.fields?.img]).filter(Boolean);
+  function withMedia(acct, then) { window.KivoMedia.init(acct.id).then(() => { then(); window.KivoMedia.gc(usedImages()); }); }
   function cleanSamples() {
     if (S.removeSampleContent(Object.values(window.KIVO_PERSONAS || {}))) setTimeout(() => toast("Removed the old sample cards. Your library now has only what you made."), 400);
   }
@@ -1894,19 +2009,25 @@
       if (t.dataset.dropCourse !== undefined) moveDeck(id, { course: t.dataset.dropCourse }); else moveDeck(id, { unit: t.dataset.dropUnit });
     });
   }
+  // Read-only hook for automated tests.
+  window.__kivoDebug = { builder: () => state.builder };
   function enterApp(acct) {
     ME = acct;
     S.useAccount(acct); S.load(blankTemplate()); cleanSamples();
-    $("#app").innerHTML = shell();
-    currentRoute = "#/home"; try { history.replaceState(null, "", currentRoute); } catch { /* sandboxed */ }
-    render(); window.scrollTo(0, 0);
+    withMedia(acct, () => {
+      $("#app").innerHTML = shell();
+      currentRoute = "#/home"; try { history.replaceState(null, "", currentRoute); } catch { /* sandboxed */ }
+      render(); window.scrollTo(0, 0);
+    });
   }
   function boot() {
     const theme = prefs.get("theme", null); if (theme) document.documentElement.dataset.theme = theme;
     document.addEventListener("click", onClick); document.addEventListener("input", onInput); document.addEventListener("change", onChange); document.addEventListener("keydown", onKey); document.addEventListener("toggle", onToggle, true); bindDrag();
+    document.addEventListener("click", onOccDocClick); document.addEventListener("paste", onBuilderPaste); document.addEventListener("change", onBuilderFile);
+    document.addEventListener("dragover", onBuilderDrop); document.addEventListener("drop", onBuilderDrop);
     window.addEventListener("hashchange", () => { if (!ME) return; if (/^#\//.test(location.hash) && location.hash !== currentRoute) { currentRoute = location.hash; onRouteChange(); } });
     const acct = OB.current();
-    if (acct) { ME = acct; S.useAccount(acct); S.load(blankTemplate()); cleanSamples(); $("#app").innerHTML = shell(); render(); }
+    if (acct) { ME = acct; S.useAccount(acct); S.load(blankTemplate()); cleanSamples(); withMedia(acct, () => { $("#app").innerHTML = shell(); render(); }); }
     else OB.start(enterApp);
   }
   boot();

@@ -116,7 +116,7 @@ window.KivoStore = (() => {
   function cardOrds(note) {
     if (note.type === "reverse") return [0, 1];
     if (note.type === "cloze") { const nums = clozeNums(note.fields.text); return nums.length ? nums : [1]; }
-    if (note.type === "occlusion") return (note.fields.masked || []).map((_, i) => i);
+    if (note.type === "occlusion") return (note.fields.image ? note.fields.masks || [] : note.fields.masked || []).map((_, i) => i);
     return [0];
   }
   const newSched = () => ({ state: "new", s: 0, d: 0, step: 0, reps: 0, lapses: 0, last: 0, due: 0, ivl: 0 });

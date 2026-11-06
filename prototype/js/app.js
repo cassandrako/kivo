@@ -188,6 +188,33 @@
   /* ======================================================================
      HOME
      ====================================================================== */
+  /* First-run guide: the Anki basics, done for real in the user's own library. */
+  const tourKey = () => "tour:" + (ME?.id || "");
+  function tourSteps() {
+    const c = activeCourses()[0] || S.db.courses[0];
+    const u = c ? S.unitsOf(c.id).find((x) => x.date && daysUntil(x.date) >= 0) || S.unitsOf(c.id)[0] : null;
+    const deck = S.db.decks.find((d) => !isArchived(d.courseId)) || S.db.decks[0];
+    const withCards = S.db.decks.find((d) => S.db.cards.some((x) => x.deckId === d.id));
+    const seen = prefs.get(tourKey(), {});
+    return [
+      { done: S.db.decks.length > 0, title: "Make a lecture collection", body: `Like an Anki deck: one per lecture${u && c ? `, filed under ${esc(c.name)} · ${esc(u.name)}` : ""}.`, btn: `<button class="btn btn--primary btn--sm" data-action="open-deck-form" ${c ? `data-course="${c.id}"` : ""} ${u ? `data-unit="${u.id}"` : ""}>Make a collection</button>` },
+      { done: S.db.notes.length > 0, title: "Add your first card", body: "Basic, basic + reversed, cloze or image occlusion. One note can make several cards.", btn: deck ? `<a class="btn btn--primary btn--sm" href="#/builder/${deck.id}">Add a card</a>` : "" },
+      { done: S.db.log.length > 0, title: "Review it", body: "Show the answer, then rate Again, Hard, Good or Easy. Kivo schedules the next review with FSRS, like Anki.", btn: withCards ? `<a class="btn btn--primary btn--sm" href="#/study/${withCards.id}">Start review</a>` : "" },
+      { done: !!seen.newMenu, title: "Find New in your Library", body: "Semesters, courses, exams, collections and cards all start from one New button.", btn: `<button class="btn btn--primary btn--sm" data-action="tour-new">Show me</button>` },
+    ];
+  }
+  function tourCard() {
+    if (prefs.get(tourKey(), {}).hidden) return "";
+    const steps = tourSteps(), left = steps.filter((x) => !x.done).length;
+    if (!left) return "";
+    const cur = steps.findIndex((x) => !x.done);
+    return `<section class="card tour" aria-labelledby="tour-title">
+      <div class="card__head"><h2 id="tour-title" class="heading">Get started</h2><span class="caption">${steps.length - left} of ${steps.length}</span><button class="link link--muted" data-action="tour-hide">Skip</button></div>
+      <ol class="tour__steps">${steps.map((x, i) => `<li class="tour__step ${x.done ? "is-done" : ""} ${i === cur ? "is-current" : ""}">
+        <span class="tour__num">${x.done ? icon("check", 14) : i + 1}</span>
+        <div><p class="body-strong">${x.title}</p>${i === cur ? `<p class="caption">${x.body}</p>${x.btn ? `<div class="tour__btn">${x.btn}</div>` : ""}` : ""}</div></li>`).join("")}</ol>
+    </section>`;
+  }
   function viewHome() {
     const hour = new Date().getHours();
     const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -197,6 +224,7 @@
     const recent = S.db.decks.filter((d) => !isArchived(d.courseId)).sort((a, b) => (S.lastStudied([b.id]) || b.modified) - (S.lastStudied([a.id]) || a.modified)).slice(0, 4);
     const reviewedToday = S.db.log.filter((l) => l.ts >= TODAY).length;
     const tomorrow = S.forecast(2)[1];
+    const tour = tourCard();
     return `
       <header class="page-header page-header--home"><div>
         <p class="overline">${esc(new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }))}</p>
@@ -204,7 +232,7 @@
         <p class="lede">${next ? `${esc(next.title)} for ${esc(S.course(next.courseId)?.name || "your course")} is ${daysLabel(daysUntil(next.date))}.` : "Add your exam dates and Kivo will show what to review before each one."}</p>
       </div></header>
       <div class="home-grid">
-        <section class="card hero ${all.total ? "" : "hero--done"}" aria-labelledby="today-title">
+        ${tour ? tour : `<section class="card hero ${all.total ? "" : "hero--done"}" aria-labelledby="today-title">
           <div class="hero__main">
             <p class="overline">Today’s review</p>
             ${first ? `
@@ -216,7 +244,7 @@
               <div class="hero__actions"><a class="btn btn--secondary btn--lg" href="#/builder">${icon("plus", 16)}Add cards</a><a class="btn btn--ghost btn--lg" href="#/insights">See insights</a></div>`}
           </div>
           ${queue.length ? `<ul class="hero__sources hero__sources--courses" aria-label="Courses with cards to study">${queue.map(({ c, n, exam }) => `<li><a href="#/study/course-${c.id}"><span class="dot dot--${c.hue}"></span><span class="hero__source-name">${esc(c.name)}${exam ? `<small class="caption">${esc(exam.title)} ${daysLabel(daysUntil(exam.date))}</small>` : ""}</span>${countPills(n, { compact: true })}<span class="hero__source-go">${icon("play", 14)}Study</span></a></li>`).join("")}</ul>` : ""}
-        </section>
+        </section>`}
         <section class="card exams" aria-labelledby="exams-title">
           <div class="card__head"><h2 id="exams-title" class="heading">Upcoming exams</h2><a class="link" href="#/exams">Manage</a></div>
           ${exams.length ? `<ul class="exam-list">${exams.map((e) => { const n = daysUntil(e.date), cov = examCoverage(e), c = S.course(e.courseId);
@@ -265,8 +293,7 @@
           </div>
         </div>
       </div>
-      <div id="library-results" aria-live="polite">${libraryResults()}</div>
-      <p class="library-foot"><button class="link link--muted" data-action="reset-sample">${icon("refresh", 14)}${template() ? "Reset to sample library" : "Clear library"}</button></p>`;
+      <div id="library-results" aria-live="polite">${libraryResults()}</div>`;
   }
   /* One “New” button for everything you can create, smallest to largest. */
   function newMenu({ course = "", unit = "", only = null } = {}) {
@@ -1153,6 +1180,16 @@
       <footer class="modal__foot"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--primary" data-action="semester-save" data-id="${sem?.id || ""}">${sem ? "Save" : "Create semester"}</button></footer>`,
       { label: sem ? "Rename semester" : "New semester", onMount: (m) => $("#sem-form", m).addEventListener("submit", (e) => { e.preventDefault(); actions["semester-save"]({ dataset: { id: sem?.id || "" } }); }) });
   }
+  // Course suggestions from the catalog, for the user's program and the semester being filled.
+  const CAT = window.KivoCatalog;
+  function suggestTerm() { const sem = S.semesterList().find((x) => !x.archived); return CAT.termOf(sem?.name) || CAT.currentTerm(); }
+  function suggestLabel() { return `${ME?.year ? ME.year + " · " : ""}${suggestTerm()}`; }
+  function courseSuggestions(forTerm) {
+    if (!ME) return [];
+    const have = new Set(S.db.courses.map((c) => c.name.toLowerCase()));
+    const list = forTerm ? CAT.suggest({ role: ME.role, year: ME.year, term: suggestTerm(), target: ME.target, program: ME.program }) : CAT.all(ME.role);
+    return list.filter((x) => !have.has(x.name.toLowerCase()));
+  }
   function openCourseForm(id, del, semesterId) {
     const c = id ? S.course(id) : null;
     if (c && del) {
@@ -1163,7 +1200,8 @@
     openModal(`
       <header class="modal__head"><h2 class="heading">${c ? "Edit course" : "New course"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
       <form class="modal__body" id="course-form" novalidate>
-        <label class="field"><span class="field__label">Course name</span><input id="course-name" value="${esc(c?.name || "")}" placeholder="e.g. Ocular Pharmacology" autofocus autocomplete="off"></label>
+        <label class="field"><span class="field__label">Course name</span><input id="course-name" list="course-sug" value="${esc(c?.name || "")}" placeholder="Type a course, or pick a suggestion" autofocus autocomplete="off"><datalist id="course-sug">${courseSuggestions().map((x) => `<option value="${esc(x.name)}">${esc(x.code || "")}</option>`).join("")}</datalist></label>
+        ${c ? "" : (() => { const sug = courseSuggestions(true); return sug.length ? `<div class="sug-chips" aria-label="Suggested courses"><span class="caption">Suggested for ${esc(suggestLabel())}</span><div class="chip-wall">${sug.map((x) => `<button type="button" class="chip-btn" data-action="course-sug" data-name="${esc(x.name)}" data-code="${esc(x.code || "")}">${esc(x.name)}</button>`).join("")}</div></div>` : ""; })()}
         <div class="field-row"><label class="field"><span class="field__label">Semester</span><select id="course-sem"><option value="">Not in a semester</option>${S.semesterList().map((x) => `<option value="${x.id}" ${x.id === defSem ? "selected" : ""}>${esc(x.name)}${x.archived ? " (archived)" : ""}</option>`).join("")}</select></label>
           <label class="field"><span class="field__label">Course code <small>optional</small></span><input id="course-code" value="${esc(c?.code || "")}" placeholder="OPT 641"><span class="field__hint">Used to match calendar imports.</span></label></div>
         <fieldset class="field"><legend class="field__label">Color</legend><div class="choice-row">${HUES.map(([v, l]) => `<label class="chip-radio"><input type="radio" name="course-hue" value="${v}" ${(c?.hue || "lavender") === v ? "checked" : ""}><span><span class="dot dot--${v}"></span>&nbsp;${l}</span></label>`).join("")}</div></fieldset>
@@ -1228,27 +1266,42 @@
         $("#deck-form", m).addEventListener("submit", (e) => { e.preventDefault(); actions["deck-save"]({ dataset: { id: d?.id || "" } }); });
       } });
   }
-  function openOptions(courseId) {
-    const c = S.course(courseId), o = S.options(courseId);
-    openModal(`
-      <header class="modal__head"><div><h2 class="heading">Review settings</h2><p class="caption">${esc(c.name)} · applies to every collection in this course</p></div><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
-      <form class="modal__body" id="opt-form" novalidate>
-        <h3 class="overline">Daily limits</h3>
-        <div class="field-row"><label class="field"><span class="field__label">New cards per day</span><input type="number" min="0" max="9999" id="o-new" value="${o.newPerDay}"></label>
-          <label class="field"><span class="field__label">Maximum reviews per day</span><input type="number" min="0" max="9999" id="o-rev" value="${o.reviewsPerDay}"></label></div>
+  function optionFields(o, disabled) {
+    const d = disabled ? "disabled" : "";
+    return `<h3 class="overline">Daily limits</h3>
+        <div class="field-row"><label class="field"><span class="field__label">New cards per day</span><input type="number" min="0" max="9999" id="o-new" value="${o.newPerDay}" ${d}></label>
+          <label class="field"><span class="field__label">Maximum reviews per day</span><input type="number" min="0" max="9999" id="o-rev" value="${o.reviewsPerDay}" ${d}></label></div>
         <h3 class="overline">Learning</h3>
-        <div class="field-row"><label class="field"><span class="field__label">Learning steps</span><input id="o-learn" value="${o.learnSteps.map((m) => m + "m").join(" ")}"><span class="field__hint">Minutes between first views of a new card.</span></label>
-          <label class="field"><span class="field__label">Relearning steps</span><input id="o-relearn" value="${o.relearnSteps.map((m) => m + "m").join(" ")}"><span class="field__hint">After you forget a review card.</span></label></div>
+        <div class="field-row"><label class="field"><span class="field__label">Learning steps</span><input id="o-learn" value="${o.learnSteps.map((m) => m + "m").join(" ")}" ${d}><span class="field__hint">Minutes between first views of a new card.</span></label>
+          <label class="field"><span class="field__label">Relearning steps</span><input id="o-relearn" value="${o.relearnSteps.map((m) => m + "m").join(" ")}" ${d}><span class="field__hint">After you forget a review card.</span></label></div>
         <h3 class="overline">Memory</h3>
-        <label class="field"><span class="field__label">Desired retention · <strong id="o-ret-v">${Math.round(o.retention * 100)}%</strong></span><input type="range" min="0.8" max="0.97" step="0.01" id="o-ret" value="${o.retention}"><span class="field__hint">Higher means more reviews but fewer forgotten cards. 90% is a good default.</span></label>
-        <div class="field-row"><label class="field"><span class="field__label">Maximum interval (days)</span><input type="number" min="1" max="36500" id="o-max" value="${o.maxIvl}"></label>
-          <label class="field"><span class="field__label">Leech after this many lapses</span><input type="number" min="1" max="99" id="o-leech" value="${o.leechThreshold}"></label></div>
-        <label class="field"><span class="field__label">When a card becomes a leech</span><select id="o-leech-action"><option value="tag" ${o.leechAction === "tag" ? "selected" : ""}>Tag it “leech” and keep reviewing</option><option value="suspend" ${o.leechAction === "suspend" ? "selected" : ""}>Tag it and suspend it</option></select></label>
-        <label class="switch switch--block"><input type="checkbox" id="o-bury" ${o.burySiblings ? "checked" : ""}><span class="switch__track"></span><span><strong>Bury related cards until tomorrow</strong><small>After you see one card from a note (like cloze c1), its other cards wait a day.</small></span></label>
-        <p class="field__error" id="form-error" role="alert" hidden></p>
-      </form>
-      <footer class="modal__foot"><button class="btn btn--ghost" data-action="options-default" data-course="${courseId}">Restore defaults</button><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--primary" data-action="options-save" data-course="${courseId}">Save</button></footer>`,
-      { label: "Review settings", onMount: (m) => $("#o-ret", m).addEventListener("input", (e) => { $("#o-ret-v", m).textContent = Math.round(e.target.value * 100) + "%"; }) });
+        <label class="field"><span class="field__label">Desired retention · <strong id="o-ret-v">${Math.round(o.retention * 100)}%</strong></span><input type="range" min="0.8" max="0.97" step="0.01" id="o-ret" value="${o.retention}" ${d}><span class="field__hint">Higher means more reviews and better recall. 90% is Anki’s default.</span></label>
+        <div class="field-row"><label class="field"><span class="field__label">Maximum interval (days)</span><input type="number" min="1" max="36500" id="o-max" value="${o.maxIvl}" ${d}></label>
+          <label class="field"><span class="field__label">Leech after this many lapses</span><input type="number" min="1" max="99" id="o-leech" value="${o.leechThreshold}" ${d}></label></div>
+        <label class="field"><span class="field__label">When a card becomes a leech</span><select id="o-leech-action" ${d}><option value="tag" ${o.leechAction === "tag" ? "selected" : ""}>Tag it “leech” and keep reviewing</option><option value="suspend" ${o.leechAction === "suspend" ? "selected" : ""}>Suspend it</option></select></label>
+        <label class="switch switch--block"><input type="checkbox" id="o-bury" ${o.burySiblings ? "checked" : ""} ${d}><span class="switch__track"></span><span><strong>Bury related cards until tomorrow</strong><small>After you see one card from a note (like cloze c1), its other cards wait a day.</small></span></label>`;
+  }
+  const scopeHint = (own) => own ? "Only this course uses these limits. Your other courses keep your account settings." : `Same as every course. <button type="button" class="link" data-action="open-options">Edit account settings</button>`;
+  /* Review settings: the account's (every course) or one course's own. */
+  function openOptions(courseId) {
+    const c = courseId ? S.course(courseId) : null;
+    const own = c && S.hasOwnOptions(courseId), o = c ? S.options(courseId) : S.accountOptions();
+    const scope = c ? `<fieldset class="field"><div class="segmented segmented--block" role="radiogroup" aria-label="Settings source">
+        <label class="segmented__btn ${own ? "" : "is-active"}"><input type="radio" name="o-scope" value="account" ${own ? "" : "checked"} class="sr-only">Use my account settings</label>
+        <label class="segmented__btn ${own ? "is-active" : ""}"><input type="radio" name="o-scope" value="course" ${own ? "checked" : ""} class="sr-only">Custom for this course</label></div>
+        <p class="field__hint" id="o-scope-hint">${scopeHint(own)}</p></fieldset>` : "";
+    openModal(`
+      <header class="modal__head"><div><h2 class="heading">${c ? "Review settings" : "Study settings"}</h2><p class="caption">${c ? `${esc(c.name)} · applies to every collection in this course` : "Your account’s limits. Every course uses these unless you give it its own."}</p></div><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
+      <form class="modal__body" id="opt-form" novalidate>${scope}<div id="o-fields">${optionFields(o, c && !own)}</div><p class="field__error" id="form-error" role="alert" hidden></p></form>
+      <footer class="modal__foot"><button class="btn btn--ghost" data-action="options-default" ${c ? `data-course="${courseId}"` : ""}>${c ? "Use account settings" : "Restore Anki defaults"}</button><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--primary" data-action="options-save" ${c ? `data-course="${courseId}"` : ""}>Save</button></footer>`,
+      { label: c ? "Review settings" : "Study settings", onMount: (m) => {
+        m.addEventListener("input", (e) => { if (e.target.id === "o-ret") $("#o-ret-v", m).textContent = Math.round(e.target.value * 100) + "%"; });
+        m.addEventListener("change", (e) => { if (e.target.name !== "o-scope") return;
+          const custom = e.target.value === "course";
+          $$("[name=o-scope]", m).forEach((r) => r.closest(".segmented__btn").classList.toggle("is-active", r.checked));
+          $("#o-fields", m).innerHTML = optionFields(custom ? S.options(courseId) : S.accountOptions(), !custom);
+          $("#o-scope-hint", m).innerHTML = scopeHint(custom); });
+      } });
   }
   const parseSteps = (s) => s.split(/[\s,]+/).filter(Boolean).map((x) => { const m = x.match(/^(\d+(?:\.\d+)?)(m|h|d)?$/i); return m ? +m[1] * ({ m: 1, h: 60, d: 1440 }[(m[2] || "m").toLowerCase()]) : NaN; });
 
@@ -1419,11 +1472,12 @@
         <div class="sidebar__foot"><button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon("moon", 18)}</button>
           <details class="menu menu--up sidebar__user"><summary aria-label="Account">${avatar(ME.initials, "sm")}<span><strong>${esc(ME.fullName)}</strong><small>${esc(ME.programLabel || "")}</small></span></summary>
             <div class="menu__list" role="menu"><p class="menu__info"><strong>${esc(ME.fullName)}</strong><small>${esc(ME.email)}</small><small>${esc([ME.programLabel, ME.school].filter(Boolean).join(" · "))}</small><small>Signed in with ${ME.provider === "apple" ? "Apple" : ME.provider === "google" ? "Google" : "email"}</small></p><hr>
+              <button role="menuitem" class="menu__item" data-action="open-options">${icon("settings", 16)}Study settings</button>
               <button role="menuitem" class="menu__item" data-action="sign-out">${icon("arrowRight", 16)}Sign out</button></div></details></div>
       </aside>
       <div class="main">
         <header class="appbar"><span class="brand brand--sm"><span class="brand__mark" aria-hidden="true">${brandMark()}</span><span class="brand__name">kivo.</span></span>
-          <div class="appbar__actions"><a class="icon-btn" href="#/builder" aria-label="Add card">${icon("plus", 20)}</a><button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon("moon", 18)}</button><button class="icon-btn" data-action="sign-out" aria-label="Sign out ${esc(ME.fullName)}" title="Sign out">${avatar(ME.initials, "sm")}</button></div></header>
+          <div class="appbar__actions"><a class="icon-btn" href="#/builder" aria-label="Add card">${icon("plus", 20)}</a><button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon("moon", 18)}</button><details class="menu appbar__account"><summary class="icon-btn" aria-label="Account: ${esc(ME.fullName)}">${avatar(ME.initials, "sm")}</summary><div class="menu__list" role="menu"><div class="menu__info"><strong>${esc(ME.fullName)}</strong><small>${esc(ME.email)}</small></div><button role="menuitem" class="menu__item" data-action="open-options">${icon("settings", 16)}Study settings</button><button role="menuitem" class="menu__item" data-action="sign-out">${icon("arrowRight", 16)}Sign out</button></div></details></div></header>
         <main id="view" tabindex="-1"></main>
       </div>
       <nav class="tabbar" aria-label="Primary">${NAV.map((n) => `<a class="tabbar__item" href="#/${n.id}" data-nav="${n.id}">${icon(n.icon, 22)}<span>${n.short || n.label}</span>${n.id === "study" ? `<span class="tabbar__badge" hidden></span>` : ""}</a>`).join("")}</nav>
@@ -1493,6 +1547,8 @@
     "clear-library": () => { state.libraryQuery = ""; render(); },
     "reset-sample": () => openModal(`<header class="modal__head"><h2 class="heading">Reset to the sample library?</h2></header><div class="modal__body"><div class="danger-box" role="alert"><p>${template() ? "This replaces all your semesters, courses, cards, review history and exams with the sample library for your program." : "This deletes all your semesters, courses, cards, review history and exams."}</p><div class="stack-h"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--danger-solid" data-action="reset-confirm">Reset</button></div></div></div>`, { label: "Reset sample data", size: "sm" }),
     "sign-out": () => { closeModal(true); OB.signOut(); ME = null; state.session = null; state.builder = null; state.quiz = null; document.body.classList.remove("is-focus-mode"); OB.start(enterApp); },
+    "tour-hide": () => { prefs.set(tourKey(), { ...prefs.get(tourKey(), {}), hidden: true }); render(); },
+    "tour-new": () => { navigate("#/library"); setTimeout(() => { const m = $(".menu--new"); if (m) { m.open = true; m.querySelector("summary")?.focus(); } }, 60); },
     "reset-confirm": () => { S.resetToSample(template() || blankTemplate()); closeModal(true); navigate("#/library"); toast("Sample data restored", { tone: "success" }); },
     "tree-toggle": (el) => { const k = el.dataset.id; const cur = state.collapsed[k]; const isSem = k.startsWith("sem-"); const sem = isSem ? S.semester(k.slice(4)) : null; const open = cur === undefined ? (isSem ? !sem?.archived : true) : !cur; state.collapsed[k] = open; prefs.set("collapsed", state.collapsed); render(); $(`[data-action="tree-toggle"][data-id="${k}"]`)?.focus(); },
     // semesters
@@ -1539,14 +1595,21 @@
       navigate(`#/collection/${d.id}`); toast(`Created ${title}`, { tone: "success", action: "Add card", onAction: () => navigate(`#/builder/${d.id}`) });
     },
     "deck-delete": (el) => { const d = S.deck(el.dataset.id); S.removeDeck(el.dataset.id); closeModal(true); navigate(`#/course/${d.courseId}`); toast(`Deleted ${d.title}`); },
-    "open-options": (el) => openOptions(el.dataset.course),
+    "open-options": (el) => { el.closest("details")?.removeAttribute("open"); openOptions(el.dataset.course); },
+    "course-sug": (el) => { $("#course-name").value = el.dataset.name; if (el.dataset.code && !$("#course-code").value) $("#course-code").value = el.dataset.code; $$(".chip-btn", el.parentElement).forEach((b) => b.classList.toggle("is-picked", b === el)); $("#course-name").focus(); },
     "options-save": (el) => {
+      const cid = el.dataset.course;
+      if (cid && $("input[name=o-scope]:checked")?.value === "account") { S.db.options[cid] = {}; S.save(); closeModal(true); render(); toast("This course uses your account settings"); return; }
       const learn = parseSteps($("#o-learn").value), relearn = parseSteps($("#o-relearn").value);
       if (learn.some(isNaN) || relearn.some(isNaN)) return formError("Write steps like “1m 10m” (m = minutes, h = hours, d = days).", learn.some(isNaN) ? $("#o-learn") : $("#o-relearn"));
-      S.setOptions(el.dataset.course, { newPerDay: Math.max(0, +$("#o-new").value || 0), reviewsPerDay: Math.max(0, +$("#o-rev").value || 0), learnSteps: learn, relearnSteps: relearn, retention: +$("#o-ret").value, maxIvl: Math.max(1, +$("#o-max").value || 36500), leechThreshold: Math.max(1, +$("#o-leech").value || 8), leechAction: $("#o-leech-action").value, burySiblings: $("#o-bury").checked });
-      closeModal(true); render(); toast("Review settings saved", { tone: "success" });
+      const patch = { newPerDay: Math.max(0, +$("#o-new").value || 0), reviewsPerDay: Math.max(0, +$("#o-rev").value || 0), learnSteps: learn, relearnSteps: relearn, retention: +$("#o-ret").value, maxIvl: Math.max(1, +$("#o-max").value || 36500), leechThreshold: Math.max(1, +$("#o-leech").value || 8), leechAction: $("#o-leech-action").value, burySiblings: $("#o-bury").checked };
+      if (cid) S.setOptions(cid, patch); else S.setAccountOptions(patch);
+      closeModal(true); render(); toast(cid ? "Review settings saved for this course" : "Study settings saved for every course", { tone: "success" });
     },
-    "options-default": (el) => { S.db.options[el.dataset.course] = {}; S.save(); closeModal(true); render(); toast("Review settings restored to defaults"); },
+    "options-default": (el) => {
+      if (el.dataset.course) { S.db.options[el.dataset.course] = {}; S.save(); closeModal(true); render(); toast("This course uses your account settings"); return; }
+      S.db.accountOptions = {}; S.save(); closeModal(true); render(); toast("Study settings restored to Anki’s defaults");
+    },
     // card browser
     "browse-filter": (el) => { state.browse.filter = el.dataset.value; refreshBrowser(); },
     "card-suspend": (el) => { const c = S.card(el.dataset.id); S.setSuspended([c.id], !c.suspended); render(); toast(c.suspended ? "Card suspended. It won’t appear in reviews." : "Card unsuspended"); },
@@ -1646,7 +1709,8 @@
     if (el.closest("details.menu")) el.closest("details.menu").open = false;
     fn(el, e);
   }
-  function onToggle(e) { if (e.target.matches?.("details[data-archive]")) { state.collapsed.__archive = e.target.open; prefs.set("collapsed", state.collapsed); } }
+  function onToggle(e) { if (e.target.matches?.(".menu--new") && e.target.open && ME) prefs.set(tourKey(), { ...prefs.get(tourKey(), {}), newMenu: true });
+    if (e.target.matches?.("details[data-archive]")) { state.collapsed.__archive = e.target.open; prefs.set("collapsed", state.collapsed); } }
   function onInput(e) {
     if (document.body.classList.contains("is-onboarding")) return;
     const el = e.target, kind = el.dataset.input; if (!kind) return;
@@ -1716,7 +1780,7 @@
   /* ---------- boot -------------------------------------------------------- */
   function enterApp(acct) {
     ME = acct;
-    S.useAccount(acct); S.load(template() || blankTemplate());
+    S.useAccount(acct); S.load(blankTemplate());
     $("#app").innerHTML = shell();
     currentRoute = "#/home"; try { history.replaceState(null, "", currentRoute); } catch { /* sandboxed */ }
     render(); window.scrollTo(0, 0);
@@ -1726,7 +1790,7 @@
     document.addEventListener("click", onClick); document.addEventListener("input", onInput); document.addEventListener("change", onChange); document.addEventListener("keydown", onKey); document.addEventListener("toggle", onToggle, true);
     window.addEventListener("hashchange", () => { if (!ME) return; if (/^#\//.test(location.hash) && location.hash !== currentRoute) { currentRoute = location.hash; onRouteChange(); } });
     const acct = OB.current();
-    if (acct) { ME = acct; S.useAccount(acct); S.load(template() || blankTemplate()); $("#app").innerHTML = shell(); render(); }
+    if (acct) { ME = acct; S.useAccount(acct); S.load(blankTemplate()); $("#app").innerHTML = shell(); render(); }
     else OB.start(enterApp);
   }
   boot();

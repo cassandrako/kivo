@@ -6,7 +6,7 @@
    ========================================================================== */
 window.KivoOnboarding = (() => {
   "use strict";
-  const S = window.KivoStore, P = window.KIVO_PERSONAS, I = window.KIVO_ICONS;
+  const S = window.KivoStore, P = window.KIVO_PERSONAS, I = window.KIVO_ICONS, CAT = window.KivoCatalog;
   const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const icon = (n, z = 18) => `<svg class="icon" width="${z}" height="${z}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n] || ""}</svg>`;
@@ -47,7 +47,7 @@ window.KivoOnboarding = (() => {
 
   /* ---------- state ------------------------------------------------------ */
   let ob, onDone;
-  const blank = () => ({ screen: "welcome", provider: null, error: "", a: { first: "", last: "", email: "", password: "", role: "", degree: "", school: "", year: "", gradYear: "", boards: "", major: "", target: "MD", examDate: "", program: "", employer: "" }, semester: "", courses: [], custom: [], exams: {}, pace: 20, sample: true, reminder: "19:00", persona: null });
+  const blank = () => ({ screen: "welcome", provider: null, error: "", a: { first: "", last: "", email: "", password: "", role: "", degree: "", school: "", year: "", gradYear: "", boards: "", major: "", target: "MD", examDate: "", program: "", employer: "" }, semester: "", courses: [], custom: [], codes: {}, sugYear: "", sugTerm: "", exams: {}, pace: 20, reviews: 200, reminder: "19:00", persona: null });
   const STEPS = ["name", "role", "details", "courses", "exams", "plan"];
 
   function start(done) { onDone = done; ob = blank(); render(); }
@@ -130,18 +130,20 @@ window.KivoOnboarding = (() => {
         ${err()}${actions("Continue")}`);
       case "details": return shell(`<h1 class="ob__title">${detailsTitle()}</h1><form class="ob__form" data-form="details" novalidate>${detailsFields()}${err()}${actions("Continue")}</form>`);
       case "courses": {
-        const t = templateFor(a.role);
-        const presets = coursePresets();
+        const presets = coursePresets(), a2 = ob.a, yrs = CAT.years(a2.role);
+        const browse = yrs.length ? `<div class="sug-browse"><span class="caption">Suggestions for</span>
+            <select id="ob-sug-year" aria-label="Year">${yrs.map((y) => `<option ${y === ob.sugYear ? "selected" : ""}>${esc(y)}</option>`).join("")}</select>
+            <select id="ob-sug-term" aria-label="Term">${CAT.TERMS.filter((t) => CAT.terms(a2.role, ob.sugYear).includes(t) || t === ob.sugTerm).map((t) => `<option ${t === ob.sugTerm ? "selected" : ""}>${t}</option>`).join("")}</select></div>`
+          : a2.role === "other" && CAT.otherLabel(a2.program) ? `<p class="caption">Suggestions for ${esc(CAT.otherLabel(a2.program))}</p>` : "";
         return shell(`
           <h1 class="ob__title">Your courses this semester</h1>
-          <p class="ob__lede">Pick what you’re taking. Each course gets its own exam folders and lecture collections.</p>
+          <p class="ob__lede">Tap the courses you’re taking, or add your own. Each course gets its own exam folders, and you add a collection for each lecture.</p>
           <form class="ob__form" data-form="courses" novalidate>
             ${field("ob-sem", "Semester", ob.semester, { hint: "Your library is organized by semester. Archive it when it ends." })}
-            <fieldset class="field"><legend class="field__label">Courses</legend><div class="chip-wall">${presets.map((c) => `<label class="chip-check"><input type="checkbox" name="ob-course" value="${esc(c.key)}" ${ob.courses.includes(c.key) ? "checked" : ""}><span>${icon("check", 14)}${esc(c.name)}${c.sample ? `<em>sample cards</em>` : ""}</span></label>`).join("")}</div></fieldset>
-            <div class="add-course"><input id="ob-custom" placeholder="Add another course, like “Ocular Pharmacology”" aria-label="Add a course"><button type="button" class="btn btn--secondary" data-ob="add-course">${icon("plus", 16)}Add</button></div>
+            <fieldset class="field"><legend class="field__label">Courses</legend>${browse}<div class="chip-wall">${presets.map((c) => `<label class="chip-check"><input type="checkbox" name="ob-course" value="${esc(c.key)}" ${ob.courses.includes(c.key) ? "checked" : ""}><span>${icon("check", 14)}${esc(c.name)}</span></label>`).join("")}</div></fieldset>
+            <div class="add-course"><input id="ob-custom" list="ob-custom-list" placeholder="Add your own course" aria-label="Add a course" autocomplete="off"><datalist id="ob-custom-list">${CAT.all(a2.role).map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist><button type="button" class="btn btn--secondary" data-ob="add-course">${icon("plus", 16)}Add</button></div>
             ${err()}${actions("Continue")}
-          </form>
-          ${t ? "" : `<p class="caption">You can add more courses anytime from the Library.</p>`}`);
+          </form>`);
       }
       case "exams": {
         const list = selectedCourses();
@@ -159,9 +161,11 @@ window.KivoOnboarding = (() => {
         return shell(`
           <h1 class="ob__title">How much do you want to study?</h1>
           <form class="ob__form" data-form="plan" novalidate>
-            <fieldset class="field"><legend class="field__label">New cards per day, per course</legend><div class="pace-grid">${[[10, "Light", "About 10 min a course"], [20, "Steady", "Anki’s default"], [35, "Intense", "Before a big exam"]].map(([v, l, d]) => `<label class="radio-card ${ob.pace === v ? "is-selected" : ""}"><input type="radio" name="ob-pace" value="${v}" ${ob.pace === v ? "checked" : ""}><span><strong>${l} · ${v}</strong><small>${d}</small></span></label>`).join("")}</div><span class="field__hint">Reviews of cards you’ve already seen always come first. Change this per course anytime.</span></fieldset>
+            <fieldset class="field"><legend class="field__label">New cards per day, per course</legend><div class="pace-grid">${[[10, "Light", "About 10 min a course"], [20, "Steady", "Anki’s default"], [35, "Intense", "Before a big exam"]].map(([v, l, d]) => `<label class="radio-card ${ob.pace === v ? "is-selected" : ""}"><input type="radio" name="ob-pace" value="${v}" ${ob.pace === v ? "checked" : ""}><span><strong>${l} · ${v}</strong><small>${d}</small></span></label>`).join("")}</div></fieldset>
+            <div class="field-row">${field("ob-new", "New cards per day", ob.pace, { type: "number", hint: "Pick above or type your own." })}${field("ob-rev", "Maximum reviews per day", ob.reviews, { type: "number", hint: "Anki’s default is 200." })}</div>
+            <p class="caption">These are your account’s limits. Every course uses them unless you change one course in its Review settings.</p>
             ${select("ob-remind", "Daily reminder on your phone", ob.reminder, [["", "Off"], ["07:30", "7:30 AM"], ["12:00", "12:00 PM"], ["19:00", "7:00 PM"], ["21:00", "9:00 PM"]])}
-            ${t ? `<label class="switch switch--block"><input type="checkbox" id="ob-sample" ${ob.sample ? "checked" : ""}><span class="switch__track"></span><span><strong>Start with sample cards</strong><small>Adds example lectures and cards to ${esc(t.courses.filter((c) => ob.courses.includes("t:" + c.id)).map((c) => c.name).join(", ") || "your courses")} so you can try reviewing right away. Delete them anytime.</small></span></label>` : `<p class="caption">Your courses start empty. Add your first lecture collection, or import cards from Anki or Quizlet.</p>`}
+            <p class="caption">Your courses and exam folders start empty. You make every card yourself, and a short guide on Home shows you how.</p>
             ${err()}${actions(`${icon("check", 16)}Create my library`)}
           </form>`);
       }
@@ -172,10 +176,10 @@ window.KivoOnboarding = (() => {
           <ul class="done-list">
             <li><span><strong>${esc(ob.semester)}</strong> with ${ob.doneCourses} ${ob.doneCourses === 1 ? "course" : "courses"}</span></li>
             <li><span>${ob.doneExams ? `${ob.doneExams} upcoming ${ob.doneExams === 1 ? "exam" : "exams"}${ob.firstExam ? `, starting with ${esc(ob.firstExam)}` : ""}` : "No exams yet. Add them from Exams or import your calendar."}</span></li>
-            <li><span>${ob.doneCards ? `${ob.doneCards} sample cards ready to review` : "Empty courses, ready for your first lecture"}</span></li>
-            <li><span>${ob.pace} new cards a day per course${ob.reminder ? ` · phone reminder at ${esc(({ "07:30": "7:30 AM", "12:00": "12:00 PM", "19:00": "7:00 PM", "21:00": "9:00 PM" })[ob.reminder] || ob.reminder)}` : ""}</span></li>
+            <li><span>No cards yet: you’ll make your first collection and card in a 2-minute guide</span></li>
+            <li><span>${ob.pace} new cards and up to ${ob.reviews} reviews a day per course${ob.reminder ? ` · phone reminder at ${esc(({ "07:30": "7:30 AM", "12:00": "12:00 PM", "19:00": "7:00 PM", "21:00": "9:00 PM" })[ob.reminder] || ob.reminder)}` : ""}</span></li>
           </ul>
-          <div class="ob__actions"><button class="btn btn--primary btn--lg" data-ob="enter">${ob.doneCards ? "Start studying" : "Go to my library"}</button></div></div>`);
+          <div class="ob__actions"><button class="btn btn--primary btn--lg" data-ob="enter">Show me how</button></div></div>`);
       }
     }
     return "";
@@ -198,12 +202,16 @@ window.KivoOnboarding = (() => {
       ${field("ob-year", r === "working" ? "Specialty or focus" : "Year", a.year, { placeholder: r === "working" ? "e.g. Internal medicine" : "e.g. Year 2" })}`;
   }
   function coursePresets() {
-    const t = templateFor(ob.a.role);
-    const base = t ? t.courses.filter((c) => !(t.semesters.find((s) => s.id === c.semesterId)?.archived)).map((c) => ({ key: "t:" + c.id, name: c.name, sample: t.decks.some((d) => d.courseId === c.id) })) : [];
-    const extra = (t ? t.extraCourses || [] : OTHER_COURSES).map((n) => ({ key: "x:" + n, name: n }));
-    return [...base, ...extra, ...ob.custom.map((n) => ({ key: "x:" + n, name: n }))];
+    const a = ob.a;
+    const sug = CAT.suggest({ role: a.role, year: ob.sugYear || a.year, term: ob.sugTerm, target: a.target, program: a.program });
+    for (const c of sug) if (c.code && !ob.codes[c.name]) ob.codes[c.name] = c.code;
+    const names = sug.map((c) => c.name);
+    // Keep anything already picked (from another term, or typed in) visible.
+    for (const k of ob.courses) { const n = k.slice(2); if (!names.some((x) => x.toLowerCase() === n.toLowerCase())) names.push(n); }
+    for (const n of ob.custom) if (!names.includes(n)) names.push(n);
+    return names.map((name) => ({ key: "x:" + name, name }));
   }
-  function selectedCourses() { return coursePresets().filter((c) => ob.courses.includes(c.key)); }
+  function selectedCourses() { return ob.courses.map((key) => ({ key, name: key.slice(2) })); }
 
   function render() {
     $("#app").innerHTML = view();
@@ -215,12 +223,14 @@ window.KivoOnboarding = (() => {
 
   /* ---------- defaults per program ------------------------------------- */
   function applyRoleDefaults() {
-    const a = ob.a, t = templateFor(a.role);
-    if (ob.persona) return;
+    const a = ob.a;
     if (YEARS[a.role] && !YEARS[a.role].includes(a.year)) a.year = YEARS[a.role][0];
-    ob.courses = t ? t.courses.filter((c) => !(t.semesters.find((s) => s.id === c.semesterId)?.archived)).map((c) => "t:" + c.id) : [];
-    ob.exams = {};
-    if (t) for (const u of t.units) if (ob.courses.includes("t:" + u.courseId) && u.offset >= 0) { const k = "t:" + u.courseId; if (!ob.exams[k]) ob.exams[k] = { name: u.name, date: isoDate(new Date(today() + u.offset * DAY)) }; }
+  }
+  // Suggestions start at the student's year and the semester's term.
+  function syncSuggestions() {
+    const a = ob.a, yrs = CAT.years(a.role);
+    if (!yrs.includes(ob.sugYear)) ob.sugYear = yrs.includes(a.year) ? a.year : yrs[0] || "";
+    if (!ob.sugTerm) ob.sugTerm = CAT.termOf(ob.semester) || CAT.currentTerm();
   }
   function semesterName() { const m = new Date().getMonth(); const term = m >= 7 ? "Fall" : m >= 4 ? "Summer" : "Spring"; return `${term} ${new Date().getFullYear()}${ob.a.year ? " · " + ob.a.year : ""}`; }
   function usePersona(id) {
@@ -229,8 +239,10 @@ window.KivoOnboarding = (() => {
     Object.assign(ob.a, { degree: "", ...t.profile, password: "" });
     ob.provider = t.profile.email.endsWith("icloud.com") ? "apple" : "google";
     ob.semester = t.semesters.find((s) => !s.archived)?.name || "";
-    ob.courses = t.courses.filter((c) => !(t.semesters.find((s) => s.id === c.semesterId)?.archived)).map((c) => "t:" + c.id);
-    for (const u of t.units) if (u.offset >= 0 && ob.courses.includes("t:" + u.courseId) && !ob.exams["t:" + u.courseId]) ob.exams["t:" + u.courseId] = { name: u.name, date: isoDate(new Date(today() + u.offset * DAY)) };
+    const active = t.courses.filter((c) => !(t.semesters.find((s) => s.id === c.semesterId)?.archived));
+    ob.courses = active.map((c) => "x:" + c.name);
+    for (const c of active) if (c.code) ob.codes[c.name] = c.code;
+    for (const u of t.units) { const c = active.find((x) => x.id === u.courseId); if (c && u.offset >= 0 && !ob.exams["x:" + c.name]) ob.exams["x:" + c.name] = { name: u.name, date: isoDate(new Date(today() + u.offset * DAY)) }; }
     if (t.profile.examOffset) ob.a.examDate = isoDate(new Date(today() + t.profile.examOffset * DAY));
     ob.screen = "provider";
   }
@@ -269,7 +281,7 @@ window.KivoOnboarding = (() => {
         if (r === "prehealth") { a.major = val("ob-major"); a.target = val("ob-target"); }
         if (r === "other" || r === "working") { a.program = val("ob-program"); if (!a.program) return fail(r === "working" ? "Add your role." : "Add your program.", "ob-program"); }
         if (!ob.persona && !ob.semester) ob.semester = semesterName();
-        if (!ob.courses.length && !ob.persona) applyRoleDefaults();
+        applyRoleDefaults(); syncSuggestions();
         ob.screen = "courses"; break;
       }
       case "courses":
@@ -282,7 +294,8 @@ window.KivoOnboarding = (() => {
         if (a.role === "prehealth") a.examDate = val("ob-test");
         ob.screen = "plan"; break;
       case "plan":
-        ob.pace = +($("input[name='ob-pace']:checked")?.value || 20); ob.reminder = val("ob-remind"); ob.sample = !!$("#ob-sample")?.checked;
+        ob.pace = Math.max(0, Math.round(+val("ob-new") || 0)); ob.reviews = Math.max(0, Math.round(+val("ob-rev") || 0)); ob.reminder = val("ob-remind");
+        if (ob.reviews < 1) return fail("Allow at least 1 review a day.", "ob-rev");
         return finish();
     }
     render();
@@ -311,29 +324,16 @@ window.KivoOnboarding = (() => {
   /* ---------- building the library -------------------------------------- */
   function guessKind(name) { return /\bosce\b/i.test(name) ? "OSCE" : /practical/i.test(name) ? "Practical" : /mid-?term/i.test(name) ? "Midterm" : /\bfinal/i.test(name) ? "Final" : /\bquiz/i.test(name) ? "Quiz" : /\b(mcat|oat|dat|nbeo|usmle|comlex|inbde|board)/i.test(name) ? "Board" : "Exam"; }
   function finish() {
-    const a = ob.a, t = templateFor(a.role), sample = !!t && ob.sample;
+    const a = ob.a, t = templateFor(a.role);
     const semId = "sem-" + Date.now().toString(36);
     const offsetOf = (iso) => { if (!iso) return null; const [y, m, d] = iso.split("-").map(Number); return Math.round((new Date(y, m - 1, d).getTime() - today()) / DAY); };
-    const T = { semesters: [{ id: semId, name: ob.semester, archived: false }], courses: [], units: [], decks: [], notes: [], sampleActivity: sample ? t.sampleActivity : [] };
-    if (sample) for (const s of t.semesters.filter((x) => x.archived)) T.semesters.push(s);
+    const T = { semesters: [{ id: semId, name: ob.semester, archived: false }], courses: [], units: [], decks: [], notes: [], sampleActivity: [] };
     const hues = ["lavender", "sage", "peach"];
     const keyToCourse = {};
     for (const key of ob.courses) {
-      if (key.startsWith("t:")) {
-        const c = t.courses.find((x) => x.id === key.slice(2));
-        T.courses.push({ ...c, semesterId: semId }); keyToCourse[key] = c.id;
-      } else {
-        const id = "c-" + Math.random().toString(36).slice(2, 8), name = key.slice(2);
-        T.courses.push({ id, name, code: "", hue: hues[T.courses.length % 3], semesterId: semId }); keyToCourse[key] = id;
-      }
-    }
-    if (sample) {
-      for (const c of t.courses.filter((x) => t.semesters.find((s) => s.id === x.semesterId)?.archived)) T.courses.push(c);
-      const ids = new Set(T.courses.map((c) => c.id));
-      T.units = t.units.filter((u) => ids.has(u.courseId)).map((u) => ({ ...u }));
-      T.decks = t.decks.filter((d) => ids.has(d.courseId)).map((d) => ({ creator: { name: `${a.first} ${a.last}`.trim(), initials: initials(a) }, ...d }));
-      const deckIds = new Set(T.decks.map((d) => d.id));
-      T.notes = t.notes.filter((n) => deckIds.has(n.deckId));
+      const name = key.slice(2), tc = t?.courses.find((x) => x.name === name);
+      const id = "c-" + Math.random().toString(36).slice(2, 8);
+      T.courses.push({ id, name, code: ob.codes[name] || tc?.code || "", hue: tc?.hue || hues[T.courses.length % 3], semesterId: semId }); keyToCourse[key] = id;
     }
     let examCount = 0, firstExam = null;
     for (const [key, e] of Object.entries(ob.exams)) {
@@ -358,10 +358,9 @@ window.KivoOnboarding = (() => {
     };
     acct.programLabel = programLabel(acct);
     S.useAccount(acct);
-    const options = {}; for (const c of T.courses) options[c.id] = { newPerDay: ob.pace };
-    S.build(T, options);
+    S.build(T, {}); S.setAccountOptions({ newPerDay: ob.pace, reviewsPerDay: ob.reviews });
     saveAccount(acct);
-    Object.assign(ob, { acct, screen: "done", doneCourses: ob.courses.length, doneExams: examCount, firstExam: firstExam ? `${firstExam.name} · ${T.courses.find((c) => c.id === firstExam.courseId)?.name}` : null, doneCards: S.db.cards.length });
+    Object.assign(ob, { acct, screen: "done", doneCourses: ob.courses.length, doneExams: examCount, firstExam: firstExam ? `${firstExam.name} · ${T.courses.find((c) => c.id === firstExam.courseId)?.name}` : null, });
     render();
   }
   const initials = (a) => ((a.first[0] || "") + (a.last[0] || "")).toUpperCase() || "ME";
@@ -380,7 +379,7 @@ window.KivoOnboarding = (() => {
     else if (k === "persona") { usePersona(el.dataset.id); render(); }
     else if (k === "pick") { ob.picked = el.dataset.email; $$(".sso__acct").forEach((b) => b.classList.toggle("is-picked", b === el)); const i = $("#ob-email"); if (i) i.value = ""; sso(); }
     else if (k === "sso") sso();
-    else if (k === "role") { const changed = ob.a.role !== el.dataset.id; ob.a.role = el.dataset.id; if (changed) { ob.persona = null; ob.courses = []; ob.exams = {}; ob.semester = ""; } render(); }
+    else if (k === "role") { const changed = ob.a.role !== el.dataset.id; ob.a.role = el.dataset.id; if (changed) { ob.persona = null; ob.courses = []; ob.exams = {}; ob.semester = ""; ob.sugYear = ""; ob.sugTerm = ""; } render(); }
     else if (k === "add-course") { const v = val("ob-custom"); if (!v) return; ob.courses = $$("input[name='ob-course']:checked").map((i) => i.value); ob.semester = val("ob-sem") || ob.semester; if (!ob.custom.includes(v)) ob.custom.push(v); ob.courses.push("x:" + v); render(); $("#ob-custom")?.focus(); }
     else if (k === "skip-exams") { ob.exams = {}; ob.screen = "plan"; render(); }
     else if (k === "enter") enter(ob.acct);
@@ -389,6 +388,15 @@ window.KivoOnboarding = (() => {
   document.addEventListener("change", (e) => {
     if (!document.body.classList.contains("is-onboarding")) return;
     if (e.target.name === "ob-pace" || e.target.name === "ob-hide") $$(`input[name='${e.target.name}']`).forEach((i) => i.closest(".radio-card")?.classList.toggle("is-selected", i.checked));
+    if (e.target.name === "ob-pace") { const n = $("#ob-new"); if (n) n.value = e.target.value; }
+    if (e.target.id === "ob-new") $$("input[name='ob-pace']").forEach((i) => { i.checked = i.value === e.target.value; i.closest(".radio-card")?.classList.toggle("is-selected", i.checked); });
+    if (["ob-sug-year", "ob-sug-term", "ob-sem"].includes(e.target.id)) {
+      ob.courses = $$("input[name='ob-course']:checked").map((i) => i.value); ob.semester = val("ob-sem") || ob.semester;
+      if (e.target.id === "ob-sug-year") { ob.sugYear = e.target.value; const ts = CAT.terms(ob.a.role, ob.sugYear); if (!ts.includes(ob.sugTerm)) ob.sugTerm = ts[0] || ob.sugTerm; }
+      else if (e.target.id === "ob-sug-term") ob.sugTerm = e.target.value;
+      else { const t = CAT.termOf(ob.semester); if (!t || t === ob.sugTerm) return; ob.sugTerm = t; }
+      render(); return;
+    }
     if (e.target.id === "ob-degree" && ob.a.role === "medicine") { ob.a.degree = e.target.value; ob.a.school = val("ob-school"); ob.a.year = val("ob-year"); render(); }
   });
   document.addEventListener("keydown", (e) => { if (document.body.classList.contains("is-onboarding") && e.key === "Enter" && e.target.id === "ob-custom") { e.preventDefault(); $("[data-ob='add-course']").click(); } });

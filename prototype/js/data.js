@@ -1,9 +1,8 @@
 /* ==========================================================================
-   Kivo — seed data
-   Loaded once into the browser's local database the first time Kivo opens.
-   After that, everything (courses, units, collections, cards, review
-   history, exams) is the student's own data and is edited in the app.
-   "Reset sample data" in the Library restores this seed.
+   Kivo — sample student: optometry
+   Used by "Prototype: try it as" on the welcome screen to pre-fill sign-up
+   (profile, courses, exam dates) and by the course catalog. New accounts
+   never receive its collections or cards: every library starts empty.
    ========================================================================== */
 
 window.KIVO_SEED = (() => {

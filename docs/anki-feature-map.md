@@ -55,7 +55,7 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | FSRS (default in modern Anki) | FSRS-5 with its published default parameters | ✅ |
 | Again / Hard / Good / Easy with next-interval preview | Same, with plain-language descriptions | ✅ |
 | Learning steps and relearning steps | Default 1m 10m and 10m, editable | ✅ |
-| New cards per day, maximum reviews per day | Per course (applies to all its collections) | ✅ |
+| New cards per day, maximum reviews per day | Set once for the account (asked during sign-up, editable in **Study settings**); any course can use its own instead | ✅ |
 | Desired retention | Slider, 80–97%, default 90% | ✅ |
 | Maximum interval | ✅ | ✅ |
 | Leech threshold and action (tag or suspend) | ✅ default 8 lapses, tag | ✅ |
@@ -63,7 +63,7 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | Bury a card manually | `−` during review | ✅ |
 | Undo | `⌘Z` during review, plus undo on delete and import | ✅ |
 | Optimize FSRS parameters from your own history | Needs enough review history | 🔜 |
-| Option presets shared across decks | Each course is a preset | ✅ |
+| Option presets shared across decks | The account’s settings are the default preset; a course can switch to custom settings | ✅ |
 | Day starts at 4am, load balancing, fuzz | | 🔜 |
 
 ## Studying
@@ -96,12 +96,14 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | AnkiWeb sync across devices | | ⏳ |
 | Shared decks (AnkiWeb) | Personal-first sharing: everyone gets their own copy and updates arrive as suggestions | ⏳ (designed, simulated) |
 | Profiles | Accounts with sign up (Apple, Google, email) and onboarding by program; each account has its own library. Sign-in is simulated in this browser until the backend lands. | ✅ (simulated) · ⏳ (real sign-in) |
-| Backups, check database | Reset sample data only for now | 🔜 / ⏳ |
+| Backups, check database | | 🔜 / ⏳ |
 | Add-ons | Not planned; common add-on needs (image occlusion, FSRS, heatmaps) are built in | ➖ |
 | Night mode | Light and dark themes, following the system setting | ✅ |
 | Keyboard shortcuts | Study, editor (`⌘↵` save), `A` add, `/` search | ✅ |
 
 ## Left out on purpose
+
+- **Sample or pre-made cards.** Like a fresh Anki profile, every account starts with no cards. Kivo sets up courses and exam folders, and the Home guide shows how to make the first ones.
 
 - **Sections or sub-decks inside a lecture.** One lecture is one collection; tags are there if you want finer grouping.
 

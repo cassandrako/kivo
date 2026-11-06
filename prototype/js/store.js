@@ -112,7 +112,12 @@ window.KivoStore = (() => {
   const deck = (id) => db.decks.find((x) => x.id === id);
   const note = (id) => db.notes.find((x) => x.id === id);
   const card = (id) => db.cards.find((x) => x.id === id);
-  const options = (courseId) => ({ ...DEFAULT_OPTIONS, ...(db.options[courseId] || {}) });
+  // Like an Anki preset: the account's settings apply to every course,
+  // and a course can override them.
+  const accountOptions = () => ({ ...DEFAULT_OPTIONS, ...(db.accountOptions || {}) });
+  const options = (courseId) => ({ ...accountOptions(), ...(db.options[courseId] || {}) });
+  const hasOwnOptions = (courseId) => Object.keys(db.options[courseId] || {}).length > 0;
+  function setAccountOptions(patch) { db.accountOptions = { ...(db.accountOptions || {}), ...patch }; save(); }
   const unitsOf = (courseId) => db.units.filter((u) => u.courseId === courseId).sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999") || a.order - b.order);
   const decksOf = (courseId, unitId) => db.decks.filter((x) => x.courseId === courseId && (unitId === undefined || (x.unitId || null) === unitId)).sort((a, b) => a.order - b.order);
 
@@ -365,7 +370,7 @@ window.KivoStore = (() => {
   }
 
   return {
-    load, save, resetToSample, useAccount, build, hasLibrary, get db() { return db; }, DAY, MIN, startOfDay, endOfDay, DEFAULT_OPTIONS,
+    load, save, resetToSample, accountOptions, setAccountOptions, hasOwnOptions, useAccount, build, hasLibrary, get db() { return db; }, DAY, MIN, startOfDay, endOfDay, DEFAULT_OPTIONS,
     semester, semesterList, coursesIn, paused, addSemester, removeSemester,
     course, unit, deck, note, card, options, unitsOf, decksOf, scopeDeckIds, scopeLabel,
     queue, counts, nextCard, preview, answer, undo, bury, setSuspended, setFlag, resetCards,

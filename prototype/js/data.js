@@ -19,27 +19,27 @@ window.KIVO_DATA = (() => {
     {
       id: "hna", name: "Head & Neck Anatomy", code: "ANAT 612", term: "Fall · Year 1",
       hue: "lavender", collections: 6, cards: 412, due: 18, newCards: 24,
-      lastActivity: "Today", progress: 0.62, exam: "Exam 2 · Nov 13",
+      lastActivity: "Today", progress: 0.62,
     },
     {
       id: "oa", name: "Ocular Anatomy", code: "OPT 621", term: "Fall · Year 1",
       hue: "sage", collections: 5, cards: 298, due: 7, newCards: 12,
-      lastActivity: "Yesterday", progress: 0.71, exam: "Practical · Nov 20",
+      lastActivity: "Yesterday", progress: 0.71,
     },
     {
       id: "bio", name: "Biochemistry", code: "BIOC 605", term: "Fall · Year 1",
       hue: "peach", collections: 8, cards: 536, due: 3, newCards: 40,
-      lastActivity: "3 days ago", progress: 0.44, exam: "Midterm · Dec 2",
+      lastActivity: "3 days ago", progress: 0.44,
     },
     {
       id: "go", name: "Geometric Optics", code: "OPT 631", term: "Fall · Year 1",
       hue: "lavender", collections: 4, cards: 187, due: 2, newCards: 8,
-      lastActivity: "2 days ago", progress: 0.58, exam: "Quiz 4 · Nov 10",
+      lastActivity: "2 days ago", progress: 0.58,
     },
     {
       id: "cs", name: "Clinical Skills", code: "CLIN 640", term: "Fall · Year 1",
       hue: "sage", collections: 3, cards: 142, due: 0, newCards: 6,
-      lastActivity: "Last week", progress: 0.80, exam: "OSCE · Dec 9",
+      lastActivity: "Last week", progress: 0.80,
     },
   ];
 
@@ -150,16 +150,16 @@ window.KIVO_DATA = (() => {
 
     { id: "oa-eom", courseId: "oa", title: "Extraocular Muscles", unit: "Unit 1 · Orbit", lecture: "Lecture 03",
       exam: "Practical", topic: "EOMs", creator: { name: "Alex Rivera", initials: "AR" }, source: "original",
-      cards: 58, due: 5, newCards: 4, updated: "Nov 4, 2026", tags: ["eom"] },
+      cards: 58, due: 5, newCards: 14, updated: "Nov 4, 2026", tags: ["eom"] },
     { id: "oa-cornea", courseId: "oa", title: "Corneal Layers", unit: "Unit 2 · Anterior Segment", lecture: "Lecture 05",
       exam: "Practical", topic: "Cornea", creator: { name: "Mei Tanaka", initials: "MT" }, source: "shared",
-      cards: 34, due: 2, newCards: 0, updated: "Oct 29, 2026", tags: ["cornea"] },
+      cards: 34, due: 2, newCards: 9, updated: "Oct 29, 2026", tags: ["cornea"] },
     { id: "bio-gly", courseId: "bio", title: "Glycolysis & Regulation", unit: "Unit 3 · Metabolism", lecture: "Lecture 11",
       exam: "Midterm", topic: "Glycolysis", creator: { name: "Alex Rivera", initials: "AR" }, source: "original",
       cards: 72, due: 3, newCards: 12, updated: "Nov 2, 2026", tags: ["metabolism"] },
     { id: "go-verg", courseId: "go", title: "Vergence & Thin Lenses", unit: "Unit 2 · Lenses", lecture: "Lecture 06",
       exam: "Quiz 4", topic: "Vergence", creator: { name: "Alex Rivera", initials: "AR" }, source: "original",
-      cards: 44, due: 2, newCards: 0, updated: "Nov 3, 2026", tags: ["optics"] },
+      cards: 44, due: 2, newCards: 18, updated: "Nov 3, 2026", tags: ["optics"] },
     { id: "cs-pupil", courseId: "cs", title: "Pupil Testing & RAPD", unit: "Unit 1 · Entrance Tests", lecture: "Lab 02",
       exam: "OSCE", topic: "Pupils", creator: { name: "Alex Rivera", initials: "AR" }, source: "original",
       cards: 26, due: 0, newCards: 6, updated: "Oct 27, 2026", tags: ["clinical"] },
@@ -187,32 +187,30 @@ window.KIVO_DATA = (() => {
       extra: "Damage to Bowman’s layer heals with scar formation.", tags: ["cornea"], state: "review" },
   ];
 
-  /* Explore — community collections --------------------------------------- */
-  const explore = [
-    { id: "ex1", title: "Cranial Nerve Lesions — Clinical Pearls", program: "Optometry", course: "Neuroanatomy",
-      topic: "Cranial nerves", institution: "Pennsylvania College of Optometry", creator: "Priya Shah", initials: "PS",
-      role: "OD2", cards: 128, saves: 342, updated: "2 days ago", verified: true, version: "v3.2",
-      preview: ["Pupil-involving CN III palsy → image urgently", "CN IV: head tilt away from lesion", "CN VI: non-localizing sign of ↑ICP"] },
-    { id: "ex2", title: "Ocular Pharmacology: Autonomic Agents", program: "Optometry", course: "Ocular Pharmacology",
-      topic: "Pharmacology", institution: "Pennsylvania College of Optometry", creator: "Mei Tanaka", initials: "MT",
-      role: "OD3", cards: 96, saves: 210, updated: "1 week ago", verified: true, version: "v2.0",
-      preview: ["Tropicamide: antimuscarinic, short-acting", "Phenylephrine: α1 agonist → mydriasis", "Pilocarpine: muscarinic agonist → miosis"] },
-    { id: "ex3", title: "Brachial Plexus — Image Occlusion Set", program: "Medicine", course: "Gross Anatomy",
-      topic: "Upper limb", institution: "Perelman School of Medicine at Penn", creator: "Daniel Cho", initials: "DC",
-      role: "MS2", cards: 74, saves: 1180, updated: "3 weeks ago", verified: false, version: "v1.4",
-      preview: ["Roots → trunks → divisions → cords → branches", "Erb palsy: C5–C6", "Klumpke palsy: C8–T1"] },
-    { id: "ex4", title: "Renal Physiology Essentials", program: "Medicine", course: "Physiology",
-      topic: "Renal", institution: "University of Toronto Temerty Faculty of Medicine", creator: "Aisha Bello", initials: "AB",
-      role: "MS1", cards: 152, saves: 640, updated: "5 days ago", verified: false, version: "v2.1",
-      preview: ["GFR ≈ creatinine clearance", "Loop diuretics act on NKCC2", "ADH inserts aquaporin-2"] },
-    { id: "ex5", title: "Geometric Optics Formula Drills", program: "Optometry", course: "Geometric Optics",
-      topic: "Optics", institution: "Pennsylvania College of Optometry", creator: "Jordan Lee", initials: "JL",
-      role: "OD1", cards: 60, saves: 98, updated: "Yesterday", verified: false, version: "v1.1",
-      preview: ["Vergence: L′ = L + F", "Prentice’s rule: Δ = cF", "Equivalent power of thick lenses"] },
-    { id: "ex6", title: "Dental Anatomy — Permanent Dentition", program: "Dentistry", course: "Dental Anatomy",
-      topic: "Tooth morphology", institution: "Columbia College of Dental Medicine", creator: "Rosa Méndez", initials: "RM",
-      role: "DDS2", cards: 210, saves: 455, updated: "2 weeks ago", verified: true, version: "v4.0",
-      preview: ["Universal numbering 1–32", "Mandibular first molar: 5 cusps", "Cusp of Carabelli: maxillary first molar"] },
+  /* Exams — sample assessments, dated relative to today so the prototype
+     always shows upcoming ones. Real exams are added by the student or
+     imported from a calendar (.ics) file exported from Canvas or Google. */
+  const exams = [
+    { id: "ex-go-q4", title: "Quiz 4", kind: "Quiz", courseId: "go", offset: 5, time: "09:00", collections: ["go-verg"], source: "manual" },
+    { id: "ex-hna-2", title: "Exam 2", kind: "Exam", courseId: "hna", offset: 8, time: "13:00", collections: ["hna-cn", "hna-pter", "hna-vasc", "hna-auto"], source: "calendar" },
+    { id: "ex-oa-p1", title: "Lab practical 1", kind: "Practical", courseId: "oa", offset: 15, time: "08:30", collections: ["oa-eom", "oa-cornea"], source: "calendar" },
+    { id: "ex-bio-mid", title: "Midterm", kind: "Midterm", courseId: "bio", offset: 27, time: "10:00", collections: ["bio-gly"], source: "manual" },
+    { id: "ex-cs-osce", title: "Entrance testing OSCE", kind: "OSCE", courseId: "cs", offset: 34, time: "12:00", collections: ["cs-pupil"], source: "manual" },
+  ];
+
+  /* A sample Canvas calendar export, in the same shape Canvas produces:
+     course name in brackets after each title, mixed with non-exam events. */
+  const sampleCalendar = [
+    { offset: 2, time: "09:00", summary: "Lecture 09: Cavernous Sinus [ANAT 612: Head & Neck Anatomy]" },
+    { offset: 3, time: "23:59", summary: "Problem Set 4 due [BIOC 605: Biochemistry]" },
+    { offset: 5, time: "09:00", summary: "Quiz 4 [OPT 631: Geometric Optics]" },
+    { offset: 6, time: "15:00", summary: "Office hours with Dr. Patel [OPT 621: Ocular Anatomy]" },
+    { offset: 8, time: "13:00", summary: "Exam 2 [ANAT 612: Head & Neck Anatomy]" },
+    { offset: 12, time: "09:00", summary: "Quiz 5: Prisms and Prentice's Rule [OPT 631: Geometric Optics]" },
+    { offset: 19, time: "08:30", summary: "Lab Practical 2: Anterior Segment [OPT 621: Ocular Anatomy]" },
+    { offset: 22, time: "10:00", summary: "Group study session (library room 3)" },
+    { offset: 41, time: "13:00", summary: "Final Exam [ANAT 612: Head & Neck Anatomy]" },
+    { offset: 44, time: "09:00", summary: "Final Exam [BIOC 605: Biochemistry]" },
   ];
 
   /* Insights (illustrative values for the prototype) ---------------------- */
@@ -247,5 +245,5 @@ window.KIVO_DATA = (() => {
     { id: "vignette", name: "Clinical vignette", desc: "A short case with a focused question.", best: "Clinical reasoning" },
   ];
 
-  return { user, courses, collections, reviewQueue, explore, insights, templates };
+  return { user, courses, collections, reviewQueue, exams, sampleCalendar, insights, templates };
 })();

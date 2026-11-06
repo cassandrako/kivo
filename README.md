@@ -31,6 +31,7 @@ Then open http://localhost:4173. To check the phone layout, use a narrow window 
 5. **Cranial Nerves → Practice quiz**: multiple choice and true/false generated only from your cards. Each answer links to its source card, and missed questions go back into spaced review.
 6. **Cranial Nerves → Edit**: the template builder (Basic, Cloze, Image occlusion, Multiple choice, Clinical vignette) with live preview.
 7. **Share**: recipients always get their own copy. **Review suggestions** shows source updates you accept or skip card by card.
-8. **Explore** and **Insights**.
+8. **Exams → Import from calendar → Try a sample Canvas calendar**: Kivo picks out quizzes, exams and practicals, skips everything else, matches each to a course and flags ones you already added. You can also add exams by hand or upload your own `.ics` export.
+9. **Insights**.
 
 All data is local sample content. Scheduling uses a simplified prototype model, not a production algorithm.

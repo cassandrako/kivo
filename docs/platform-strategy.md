@@ -7,7 +7,7 @@ Students create material on a laptop and review it in short sessions on their ph
 | | Web (desktop-first, responsive) | iOS (native) |
 |---|---|---|
 | Primary jobs | Building cards, organizing the library, importing, sharing, insights | Daily reviews, quick card capture, notifications for due reviews |
-| Navigation | Left sidebar (5 destinations + course shortcuts); collapses to icons < 980px | Bottom tab bar: Home · Library · Study · Explore · Insights |
+| Navigation | Left sidebar (5 destinations + course shortcuts); collapses to icons < 980px | Bottom tab bar: Home · Library · Study · Exams · Insights |
 | Study session | Keyboard-first: Space reveal, 1–4 rate, F flag, P pause | Thumb-first: ratings pinned to the bottom, 44pt targets, haptics on rate |
 | Dialogs | Centered modals | Bottom sheets with a grabber |
 | Typography | Inter | SF Pro via Dynamic Type (sizes mapped in tokens) |

@@ -67,6 +67,15 @@ Sharing in Kivo never means co-editing one deck.
 
 This solves Anki's "disconnected .apkg copies" problem without forcing a shared deck on students.
 
+## Exams drive the plan
+
+Kivo is built around the student's own courses, so there is no public "explore" catalog. Exams are where the calendar meets the library:
+
+- **Add exams** by hand (name, course, type, date, the collections it covers), or **import them from a calendar file**. Canvas (Calendar → Calendar Feed) and Google Calendar (Settings → Import & export → Export) both produce standard `.ics` files.
+- On import, Kivo keeps only assessments (exam, quiz, midterm, final, practical, OSCE) and skips lectures, assignments and office hours. It matches each to a course from the `[COURSE CODE: Name]` suffix Canvas adds, flags exams already in Kivo, and lets the student review everything before it's added.
+- Each exam shows a countdown and **coverage**: the share of its linked cards reviewed at least once. Coverage is never presented as readiness.
+- **Later (needs accounts):** a live Canvas connection (OAuth, requires the school to approve a developer key) or a Google Calendar connection, so new exams appear automatically.
+
 ## Smart organization
 
 Health-program material naturally follows *Program → Course → Unit/Lecture → Topic → Assessment*. Kivo keeps that structure underneath whatever names students use:

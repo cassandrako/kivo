@@ -25,13 +25,14 @@ Then open http://localhost:4173. To check the phone layout, use a narrow window 
 
 ### Try it
 
+0. **Sign up.** Continue with Apple, Google (both simulated) or email, then six short steps: name, what you study (optometry, medicine, dentistry, pre-health, another health program, or working in healthcare), program details (degree, year, school, graduation year, next board exam; or major and target for pre-health), courses, upcoming exams, and daily pace. Kivo builds your semester, courses and exam folders from the answers. On the welcome screen, **Prototype: walk through as a student** pre-fills the flow for one of four sample students: Alex Rivera (OD1, Pennsylvania College of Optometry), Maya Chen (MS1, Penn Perelman), Jordan Okafor (D2, Columbia Dental, Sign in with Apple) or Sam Patel (pre-med junior, Penn, MCAT in April). Each account keeps its own library; sign out from the account menu.
 1. **Home → Start [course].** Reviews are one course at a time; Kivo starts with the course whose exam is nearest, then offers the next. Press `Space` to show the answer and `1`–`4` to rate (Space again = Good). On multi-part answers, tick the key points you recalled. `E` edits the card, `F` flags, `−` buries, `@` suspends, `⌘Z` undoes.
 2. **Study** shows every course, exam and collection (grouped by semester) with New / Learn / Due counts, like Anki’s deck list.
-3. **My Library → New semester / New course / New collection.** Build your own Semester → Course → Exam → Lecture collection structure. Archive a finished semester from its ⋯ menu; archiving pauses its reviews until you restore it.
+3. **My Library → New** opens one menu: Card, Lecture collection, Exam, Course, Semester, or Import. Build your own Semester → Course → Exam → Lecture collection structure. Archive a finished semester from its ⋯ menu; archiving pauses its reviews until you restore it.
 4. **Add card** (sidebar, or `A`) for Basic, Basic + reversed, Cloze or Image occlusion, with a live preview. Click any card in a collection to edit it.
 5. **Import** a text/CSV export, or try the sample `HN_Lec4_Final.txt`: Kivo suggests where it belongs and skips duplicates.
-6. **Practice quiz** from any collection, exam or course: multiple choice and true/false built from your own cards.
+6. **A collection page** keeps to what you need: its exam and date, card count, retention, Add card, Study, and the card list. Share, Practice quiz, settings and delete live in the ⋯ menu. **Practice quiz** works from any collection, exam or course: multiple choice and true/false built from your own cards.
 7. **Exams → Import from calendar** (Canvas or Google `.ics`), and **Insights**.
 8. A course’s ⋯ menu → **Review settings**: daily limits, learning steps, desired retention, leeches.
 
-Your data is saved in your browser. Scheduling is FSRS-5 (the algorithm modern Anki uses) with Anki-style learning steps. **Reset sample data** at the bottom of the Library restores the demo content. See `docs/anki-feature-map.md` for which Anki features are built, planned or left out.
+Accounts and data are saved in your browser (one library per account). Scheduling is FSRS-5 (the algorithm modern Anki uses) with Anki-style learning steps. **Reset sample data** at the bottom of the Library restores the demo content. See `docs/anki-feature-map.md` for which Anki features are built, planned or left out.

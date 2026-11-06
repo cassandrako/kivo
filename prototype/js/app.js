@@ -9,6 +9,10 @@
 
   const S = window.KivoStore;
   const SEED = window.KIVO_SEED;
+  const OB = window.KivoOnboarding;
+  let ME = null; // signed-in account
+  const template = () => (ME && window.KIVO_PERSONAS[ME.persona]) || null;
+  const blankTemplate = () => ({ semesters: [], courses: [], units: [], decks: [], notes: [], sampleActivity: [] });
   const I = window.KIVO_ICONS;
 
   /* ---------- utilities ------------------------------------------------- */
@@ -196,7 +200,7 @@
     return `
       <header class="page-header page-header--home"><div>
         <p class="overline">${esc(new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }))}</p>
-        <h1 class="display">${greet}, ${esc(SEED.user.name)}</h1>
+        <h1 class="display">${greet}, ${esc(ME.first)}</h1>
         <p class="lede">${next ? `${esc(next.title)} for ${esc(S.course(next.courseId)?.name || "your course")} is ${daysLabel(daysUntil(next.date))}.` : "Add your exam dates and Kivo will show what to review before each one."}</p>
       </div></header>
       <div class="home-grid">
@@ -246,10 +250,7 @@
       <header class="page-header">
         <div><h1 class="title">My Library</h1><p class="lede">${plural(S.db.semesters.filter((x) => !x.archived).length, "active semester")} · ${plural(activeCourses().length, "course")} · ${S.db.cards.length.toLocaleString()} cards</p></div>
         <div class="page-header__actions">
-          <button class="btn btn--ghost" data-action="open-import">${icon("upload", 16)}Import</button>
-          <button class="btn btn--ghost" data-action="open-semester-form">${icon("folder", 16)}New semester</button>
-          <button class="btn btn--secondary" data-action="open-deck-form">${icon("layers", 16)}New collection</button>
-          <button class="btn btn--primary" data-action="open-course-form">${icon("plus", 16)}New course</button>
+          ${newMenu()}
         </div>
       </header>
       <div class="toolbar" role="search">
@@ -265,7 +266,23 @@
         </div>
       </div>
       <div id="library-results" aria-live="polite">${libraryResults()}</div>
-      <p class="library-foot"><button class="link link--muted" data-action="reset-sample">${icon("refresh", 14)}Reset sample data</button></p>`;
+      <p class="library-foot"><button class="link link--muted" data-action="reset-sample">${icon("refresh", 14)}${template() ? "Reset to sample library" : "Clear library"}</button></p>`;
+  }
+  /* One “New” button for everything you can create, smallest to largest. */
+  function newMenu({ course = "", unit = "", only = null } = {}) {
+    const items = [
+      { k: "card", icon: "study", label: "Card", sub: "A question for a lecture collection", href: "#/builder" },
+      { k: "collection", icon: "layers", label: "Lecture collection", sub: "One lecture’s cards, inside an exam", action: "open-deck-form" },
+      { k: "exam", icon: "calendar", label: "Exam", sub: "Groups the lectures it covers, with a date", action: "open-exam-form" },
+      { k: "course", icon: "book", label: "Course", sub: "Holds exams and lectures", action: "open-course-form" },
+      { k: "semester", icon: "folder", label: "Semester", sub: "Holds courses; archive it when it ends", action: "open-semester-form" },
+    ].filter((i) => !only || only.includes(i.k));
+    const data = `${course ? ` data-course="${course}"` : ""}${unit ? ` data-unit="${unit}"` : ""}`;
+    return `<details class="menu menu--new"><summary class="btn btn--primary">${icon("plus", 16)}New${icon("chevronDown", 14)}</summary>
+      <div class="menu__list menu__list--wide" role="menu">${items.map((i) => i.href
+        ? `<a role="menuitem" class="menu__item menu__item--rich" href="${i.href}${course ? "" : ""}">${icon(i.icon, 18)}<span><strong>${i.label}</strong><small>${i.sub}</small></span></a>`
+        : `<button role="menuitem" class="menu__item menu__item--rich" data-action="${i.action}"${data}>${icon(i.icon, 18)}<span><strong>${i.label}</strong><small>${i.sub}</small></span></button>`).join("")}
+        <hr><button role="menuitem" class="menu__item menu__item--rich" data-action="open-import"${course ? ` data-course="${course}"` : ""}>${icon("upload", 18)}<span><strong>Import cards</strong><small>From Anki, Quizlet or a spreadsheet</small></span></button></div></details>`;
   }
   function courseInfo(c) { const ids = S.scopeDeckIds("course:" + c.id); return { c, st: S.deckStats(ids), n: S.counts("course:" + c.id), last: S.lastStudied(ids), decks: ids.length }; }
   function coursesHtml(rows, { addTo = undefined } = {}) {
@@ -358,8 +375,7 @@
         <div><p class="overline">${esc([c.code, c.term].filter(Boolean).join(" · "))}${isArchived(id) ? " · Archived" : ""}</p><h1 class="title">${esc(c.name)}</h1>
           <p class="lede">${plural(units.length, "exam")} · ${plural(S.scopeDeckIds("course:" + id).length, "lecture")} · ${plural(st.total, "card")} · Next: ${esc(nextExamLabel(id))}</p></div>
         <div class="page-header__actions">
-          <button class="btn btn--ghost" data-action="open-exam-form" data-course="${id}">${icon("calendar", 16)}New exam</button>
-          <button class="btn btn--secondary" data-action="open-deck-form" data-course="${id}">${icon("plus", 16)}New lecture</button>
+          ${newMenu({ course: id, only: ["card", "collection", "exam"] })}
           <a class="btn btn--primary ${all.total ? "" : "is-quiet"}" href="#/study/course-${id}">${icon("play", 16)}Study course${all.total ? ` · ${all.total}` : ""}</a>
           ${menu("course-" + id, [{ label: "Edit course", icon: "edit", action: "open-course-form", data: { id } }, { label: "Review settings", icon: "settings", action: "open-options", data: { course: id } }, { label: "Practice quiz on course", icon: "target", action: "go", data: { href: `#/quiz/course-${id}` } }, "-", { label: "Delete course", icon: "trash", action: "open-course-form", data: { id, del: 1 }, danger: true }])}
         </div>
@@ -375,58 +391,37 @@
     const d = S.deck(id); if (!d) return viewNotFound();
     const c = S.course(d.courseId), u = d.unitId ? S.unit(d.unitId) : null;
     const n = S.counts("deck:" + id), st = S.deckStats([id]);
+    const days = u?.date ? Math.round((S.startOfDay(parseISO(u.date).getTime()) - TODAY) / DAY) : null;
+    const when = days == null ? "" : days < 0 ? "done" : days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+    const facts = [
+      u ? `<span>${icon("calendar", 14)}${esc(u.name)}${u.date ? ` · ${fmtDate(u.date)}${when ? ` <span class="muted">(${when})</span>` : ""}` : ""}</span>` : "",
+      d.lecture ? `<span>${esc(d.lecture)}</span>` : "",
+      `<span>${plural(st.total, "card")}</span>`,
+      st.retention != null ? `<span>${pct(st.retention)} retention</span>` : "",
+    ].filter(Boolean).join(`<span class="facts__sep" aria-hidden="true">·</span>`);
+    const hasUpdate = d.id === "hna-cn" && d.sourceOf;
     return `
       ${breadcrumb([...courseCrumbs(c), { label: c.name, href: `#/course/${c.id}` }, ...(u ? [{ label: u.name, href: `#/course/${c.id}` }] : []), { label: d.title }])}
       <header class="page-header page-header--collection">
         <div>
-          <div class="meta-row">${sourceBadge(d.source)}${d.sourceOf ? `<span class="caption">copied from ${esc(d.sourceOf)}</span>` : ""}</div>
           <h1 class="title">${esc(d.title)}</h1>
-          ${d.description ? `<p class="lede lede--wide">${esc(d.description)}</p>` : ""}
+          <p class="facts">${facts}</p>
         </div>
         <div class="page-header__actions">
-          <button class="btn btn--ghost" data-action="open-share" data-id="${id}">${icon("share", 16)}Share</button>
           <a class="btn btn--secondary" href="#/builder/${id}">${icon("plus", 16)}Add card</a>
           <a class="btn btn--primary ${n.total ? "" : "is-quiet"}" href="#/study/${id}">${icon("play", 16)}${n.total ? `Study · ${n.total}` : "Study"}</a>
-          ${menu("deck-" + id, [{ label: "Edit details", icon: "edit", action: "open-deck-form", data: { id } }, { label: "Review settings", icon: "settings", action: "open-options", data: { course: d.courseId } }, { label: "Practice quiz", icon: "target", action: "go", data: { href: `#/quiz/${id}` } }, "-", { label: "Delete collection", icon: "trash", action: "open-deck-form", data: { id, del: 1 }, danger: true }])}
+          ${menu("deck-" + id, [{ label: "Practice quiz", icon: "target", action: "go", data: { href: `#/quiz/${id}` } }, { label: "Share", icon: "share", action: "open-share", data: { id } }, "-", { label: "Edit details", icon: "edit", action: "open-deck-form", data: { id } }, { label: "Review settings", icon: "settings", action: "open-options", data: { course: d.courseId } }, "-", { label: "Delete collection", icon: "trash", action: "open-deck-form", data: { id, del: 1 }, danger: true }])}
         </div>
       </header>
-      <div class="collection-layout">
-        <div class="collection-main">
-          <section class="card modes" aria-label="Study this collection">
-            <div class="mode-grid mode-grid--two">
-              <a class="mode mode--primary" href="#/study/${id}">${icon("refresh", 20)}<strong>Spaced review</strong>
-                <small>${n.total ? `${n.new} new · ${n.learn} learning · ${n.review} review` : `Nothing due. ${st.total ? "Cards come back on schedule." : "Add cards to start."}`}</small></a>
-              <a class="mode" href="#/quiz/${id}">${icon("target", 20)}<strong>Practice quiz</strong><small>Multiple choice and true/false from these cards. Doesn’t change your schedule.</small></a>
-            </div>
-          </section>
-          <section class="card" aria-labelledby="cards-title">
-            <div class="card__head"><h2 id="cards-title" class="heading">Cards <span class="count">${st.total}</span></h2><a class="btn btn--secondary btn--sm" href="#/builder/${id}">${icon("plus", 14)}Add card</a></div>
-            <div id="browser">${cardBrowser(id)}</div>
-          </section>
+      ${hasUpdate ? `<p class="notice">${esc(d.sourceOf.replace(/’s source$/, ""))} updated the collection you copied. <button class="link" data-action="review-update">Review 2 changes</button></p>` : ""}
+      <section class="collection-cards" aria-labelledby="cards-title">
+        <div class="collection-cards__head">
+          <h2 id="cards-title" class="heading">Cards</h2>
+          <p class="caption">${n.total ? `${n.new} new · ${n.learn} learning · ${n.review} to review today` : st.total ? "Nothing due. Cards come back on schedule." : ""}</p>
+          <a class="link" href="#/quiz/${id}">${icon("target", 14)}Practice quiz</a>
         </div>
-        <aside class="collection-aside">
-          <section class="card details" aria-labelledby="details-title">
-            <h2 id="details-title" class="overline">Details</h2>
-            <dl class="dl">
-              <div><dt>Course</dt><dd><a class="link" href="#/course/${c.id}">${esc(c.name)}</a></dd></div>
-              <div><dt>Exam</dt><dd>${esc(u ? `${u.name}${u.date ? ` · ${fmtDate(u.date)}` : ""}` : "Not in an exam yet")}</dd></div>
-              ${d.lecture ? `<div><dt>Lecture</dt><dd>${esc(d.lecture)}</dd></div>` : ""}
-              ${d.topic ? `<div><dt>Topic</dt><dd>${esc(d.topic)}</dd></div>` : ""}
-              <div><dt>Cards</dt><dd>${st.total} · ${st.new} new · ${st.learning} learning · ${st.review} review${st.suspended ? ` · ${st.suspended} suspended` : ""}</dd></div>
-              ${st.retention != null ? `<div><dt>Est. retention</dt><dd>${pct(st.retention)}</dd></div>` : ""}
-              <div><dt>Last modified</dt><dd>${new Date(d.modified).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</dd></div>
-            </dl>
-            ${d.creator ? `<div class="creator">${avatar(d.creator.initials)}<div><p class="body-strong">${esc(d.creator.name)}</p><p class="caption">${esc(d.creator.role || "Creator")}</p></div></div>` : ""}
-            ${d.tags?.length ? `<div class="tag-row">${d.tags.map((t) => `<span class="tag">#${esc(t)}</span>`).join("")}</div>` : ""}
-          </section>
-          <section class="card" aria-labelledby="sharing-title">
-            <div class="card__head"><h2 id="sharing-title" class="overline">Sharing</h2><button class="link" data-action="open-share" data-id="${id}">Share</button></div>
-            <p class="caption personal-note">${icon("lock", 14)}<span>This collection is yours. Only you can edit it, and your schedule and progress are private.</span></p>
-            ${d.copies ? `<p class="caption"><strong>People with their own copy</strong></p><ul class="people">${d.copies.map((p) => `<li>${avatar(p.initials, "sm", p.group ? "avatar--group" : "")}<span>${esc(p.name)}<small>${esc(p.status)}</small></span></li>`).join("")}</ul>` : `<p class="caption">Not shared yet.</p>`}
-            ${d.sourceOf ? `<div class="lineage"><p class="caption"><strong>Where this came from</strong></p><ol class="lineage__list"><li><span class="lineage__dot"></span>${esc(d.sourceOf)}</li><li class="is-current"><span class="lineage__dot"></span>Your copy${d.edits ? ` · ${d.edits.cards} reworded, ${d.edits.added} added` : ""}</li></ol>${d.id === "hna-cn" ? `<p class="caption">2 changes published yesterday. <button class="link" data-action="review-update">Review suggestions</button></p>` : ""}</div>` : ""}
-          </section>
-        </aside>
-      </div>`;
+        <div id="browser">${cardBrowser(id)}</div>
+      </section>`;
   }
 
   /* Anki-style browser: one row per card, filter by state, search. */
@@ -457,9 +452,8 @@
         const n = notesById.get(c.noteId), f = cardFaces(c, n), due = dueLabel(c);
         return `<li class="card-row ${c.suspended ? "is-suspended" : ""}">
           <a class="card-row__link" href="#/builder/${deckId}?note=${n.id}" aria-label="Edit card: ${esc(f.q.slice(0, 80))}"></a>
-          <span class="card-row__type">${esc(TYPE_LABEL[n.type])}${S.cardOrds(n).length > 1 ? ` · ${n.type === "cloze" ? "c" + c.ord : n.type === "reverse" ? (c.ord ? "back" : "front") : "#" + (c.ord + 1)}` : ""}</span>
           <div class="card-row__body"><p class="card-row__front">${n.type === "cloze" ? clozeHtml(n.fields.text, c.ord, "front") : esc(f.q)}</p><p class="card-row__back">${esc(f.a)}</p></div>
-          <div class="card-row__meta">${c.flag ? `<span class="flag" title="Flagged">${icon("flag", 14)}</span>` : ""}<span class="badge badge--${due.tone}">${esc(due.text)}</span>
+          <div class="card-row__meta">${c.flag ? `<span class="flag" title="Flagged">${icon("flag", 14)}</span>` : ""}${n.type !== "basic" ? `<span class="card-row__type">${esc(TYPE_LABEL[n.type])}${S.cardOrds(n).length > 1 ? ` · ${n.type === "cloze" ? "c" + c.ord : n.type === "reverse" ? (c.ord ? "back" : "front") : "#" + (c.ord + 1)}` : ""}</span>` : ""}<span class="status status--${due.tone}">${esc(due.text)}</span>
             ${menu("card-" + c.id, [{ label: "Edit", icon: "edit", action: "go", data: { href: `#/builder/${deckId}?note=${n.id}` } }, { label: c.suspended ? "Unsuspend" : "Suspend", icon: "pause", action: "card-suspend", data: { id: c.id } }, { label: c.flag ? "Remove flag" : "Flag", icon: "flag", action: "card-flag", data: { id: c.id } }, { label: "Reset to new", icon: "refresh", action: "card-reset", data: { id: c.id } }, "-", { label: "Delete note", icon: "trash", action: "note-delete", data: { id: n.id }, danger: true }])}
           </div>
         </li>`; }).join("") : `<li class="card-list__empty caption">No cards match this filter.</li>`}</ul>`;
@@ -1025,7 +1019,8 @@
   }
   function sampleCanvasICS() {
     const stamp = (off, t) => `${isoDate(new Date(TODAY + off * DAY)).replace(/-/g, "")}T${t.replace(":", "")}00`;
-    const ev = SEED.sampleCalendar.map((e, i) => ["BEGIN:VEVENT", `UID:event-${1000 + i}@canvas.example`, `DTSTART;TZID=America/New_York:${stamp(e.offset, e.time)}`, `SUMMARY:${e.summary.replace(/,/g, "\\,")}`, "END:VEVENT"].join("\r\n"));
+    const cal = template()?.sampleCalendar || S.db.courses.flatMap((c, i) => [{ offset: 3 + i, time: "09:00", summary: `Lecture 05 [${c.code ? c.code + ": " : ""}${c.name}]` }, { offset: 10 + i * 3, time: "10:00", summary: `Quiz 2 [${c.code ? c.code + ": " : ""}${c.name}]` }]);
+    const ev = cal.map((e, i) => ["BEGIN:VEVENT", `UID:event-${1000 + i}@canvas.example`, `DTSTART;TZID=America/New_York:${stamp(e.offset, e.time)}`, `SUMMARY:${e.summary.replace(/,/g, "\\,")}`, "END:VEVENT"].join("\r\n"));
     return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Instructure//Canvas//EN", ...ev, "END:VCALENDAR"].join("\r\n");
   }
   function openCalendarImport() {
@@ -1370,7 +1365,7 @@
         <div class="field"><label class="field__label" for="invite">Send to</label><div class="invite"><input id="invite" placeholder="Classmate, email or study group" autofocus><button class="btn btn--primary" data-action="share-invite">Send copy</button></div></div>
         <div><p class="field__label">Already have a copy</p><ul class="people people--modal" id="share-people">${copies.map((p) => `<li>${avatar(p.initials, "sm", p.group ? "avatar--group" : "")}<span><strong>${esc(p.name)}</strong><small>${esc(p.status)}</small></span></li>`).join("") || `<li class="caption">Nobody yet.</li>`}</ul></div>
         <label class="switch switch--block"><input type="checkbox" checked id="share-follow"><span class="switch__track"></span><span><strong>Offer my future changes as suggestions</strong><small>People who follow can accept or skip each change. Their own edits are never overwritten.</small></span></label>
-        <div class="link-row"><span class="link-row__icon">${icon("link", 16)}</span><div class="link-row__body"><label for="link-access" class="body-strong">Who can get a copy from the link</label><select id="link-access"><option>Only people I send it to</option><option selected>Anyone at Pennsylvania College of Optometry</option><option>Anyone with the link</option></select></div></div>
+        <div class="link-row"><span class="link-row__icon">${icon("link", 16)}</span><div class="link-row__body"><label for="link-access" class="body-strong">Who can get a copy from the link</label><select id="link-access"><option>Only people I send it to</option><option selected>Anyone at ${esc(ME.school || "your school")}</option><option>Anyone with the link</option></select></div></div>
         ${prototypeNote("Sending copies needs accounts, which come next. This dialog shows how sharing will work.")}
       </div>
       <footer class="modal__foot"><button class="btn btn--ghost" data-action="copy-link">${icon("copy", 16)}Copy link</button><button class="btn btn--primary" data-action="close-modal">Done</button></footer>`, { label: `Share ${d.title}` });
@@ -1422,11 +1417,13 @@
         <nav><ul class="nav">${NAV.map((n) => `<li><a class="nav__item" href="#/${n.id}" data-nav="${n.id}">${icon(n.icon, 18)}<span>${n.label}</span>${n.id === "study" ? `<span class="nav__count" id="nav-due"></span>` : ""}</a></li>`).join("")}</ul></nav>
         <div class="sidebar__section"><div class="sidebar__section-head"><p class="overline" id="nav-sem-label">Courses</p><button class="icon-btn icon-btn--sm" data-action="open-course-form" aria-label="New course" title="New course">${icon("plus", 14)}</button></div><ul class="nav nav--courses" id="nav-courses"></ul></div>
         <div class="sidebar__foot"><button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon("moon", 18)}</button>
-          <div class="sidebar__user">${avatar(SEED.user.initials, "sm")}<span><strong>${esc(SEED.user.fullName)}</strong><small>${esc(SEED.user.year)} · Optometry</small></span></div></div>
+          <details class="menu menu--up sidebar__user"><summary aria-label="Account">${avatar(ME.initials, "sm")}<span><strong>${esc(ME.fullName)}</strong><small>${esc(ME.programLabel || "")}</small></span></summary>
+            <div class="menu__list" role="menu"><p class="menu__info"><strong>${esc(ME.fullName)}</strong><small>${esc(ME.email)}</small><small>${esc([ME.programLabel, ME.school].filter(Boolean).join(" · "))}</small><small>Signed in with ${ME.provider === "apple" ? "Apple" : ME.provider === "google" ? "Google" : "email"}</small></p><hr>
+              <button role="menuitem" class="menu__item" data-action="sign-out">${icon("arrowRight", 16)}Sign out</button></div></details></div>
       </aside>
       <div class="main">
         <header class="appbar"><span class="brand brand--sm"><span class="brand__mark" aria-hidden="true">${brandMark()}</span><span class="brand__name">kivo.</span></span>
-          <div class="appbar__actions"><a class="icon-btn" href="#/builder" aria-label="Add card">${icon("plus", 20)}</a><button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon("moon", 18)}</button></div></header>
+          <div class="appbar__actions"><a class="icon-btn" href="#/builder" aria-label="Add card">${icon("plus", 20)}</a><button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon("moon", 18)}</button><button class="icon-btn" data-action="sign-out" aria-label="Sign out ${esc(ME.fullName)}" title="Sign out">${avatar(ME.initials, "sm")}</button></div></header>
         <main id="view" tabindex="-1"></main>
       </div>
       <nav class="tabbar" aria-label="Primary">${NAV.map((n) => `<a class="tabbar__item" href="#/${n.id}" data-nav="${n.id}">${icon(n.icon, 22)}<span>${n.short || n.label}</span>${n.id === "study" ? `<span class="tabbar__badge" hidden></span>` : ""}</a>`).join("")}</nav>
@@ -1494,8 +1491,9 @@
     "focus-search": () => { navigate("#/library"); setTimeout(() => $("#library-search")?.focus(), 30); },
     "library-view": (el) => { state.libraryView = el.dataset.value; prefs.set("libraryView", state.libraryView); render(); },
     "clear-library": () => { state.libraryQuery = ""; render(); },
-    "reset-sample": () => openModal(`<header class="modal__head"><h2 class="heading">Reset to the sample library?</h2></header><div class="modal__body"><div class="danger-box" role="alert"><p>This replaces all your semesters, courses, cards, review history and exams with Kivo’s sample data.</p><div class="stack-h"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--danger-solid" data-action="reset-confirm">Reset</button></div></div></div>`, { label: "Reset sample data", size: "sm" }),
-    "reset-confirm": () => { S.resetToSample(); closeModal(true); navigate("#/library"); toast("Sample data restored", { tone: "success" }); },
+    "reset-sample": () => openModal(`<header class="modal__head"><h2 class="heading">Reset to the sample library?</h2></header><div class="modal__body"><div class="danger-box" role="alert"><p>${template() ? "This replaces all your semesters, courses, cards, review history and exams with the sample library for your program." : "This deletes all your semesters, courses, cards, review history and exams."}</p><div class="stack-h"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--danger-solid" data-action="reset-confirm">Reset</button></div></div></div>`, { label: "Reset sample data", size: "sm" }),
+    "sign-out": () => { closeModal(true); OB.signOut(); ME = null; state.session = null; state.builder = null; state.quiz = null; document.body.classList.remove("is-focus-mode"); OB.start(enterApp); },
+    "reset-confirm": () => { S.resetToSample(template() || blankTemplate()); closeModal(true); navigate("#/library"); toast("Sample data restored", { tone: "success" }); },
     "tree-toggle": (el) => { const k = el.dataset.id; const cur = state.collapsed[k]; const isSem = k.startsWith("sem-"); const sem = isSem ? S.semester(k.slice(4)) : null; const open = cur === undefined ? (isSem ? !sem?.archived : true) : !cur; state.collapsed[k] = open; prefs.set("collapsed", state.collapsed); render(); $(`[data-action="tree-toggle"][data-id="${k}"]`)?.focus(); },
     // semesters
     "open-semester-form": (el) => openSemesterForm({ id: el.dataset.id, del: el.dataset.del }),
@@ -1632,6 +1630,7 @@
   function refreshBrowser() { const b = $("#browser"); if (b) b.innerHTML = cardBrowser(parseRoute().id); }
 
   function onClick(e) {
+    if (document.body.classList.contains("is-onboarding")) return;
     const openMenu = e.target.closest("details.menu");
     $$("details.menu[open]").forEach((d) => { if (d !== openMenu) d.open = false; });
     const link = e.target.closest('a[href^="#/"]');
@@ -1649,6 +1648,7 @@
   }
   function onToggle(e) { if (e.target.matches?.("details[data-archive]")) { state.collapsed.__archive = e.target.open; prefs.set("collapsed", state.collapsed); } }
   function onInput(e) {
+    if (document.body.classList.contains("is-onboarding")) return;
     const el = e.target, kind = el.dataset.input; if (!kind) return;
     if (kind === "library-query") { state.libraryQuery = el.value; $("#library-results").innerHTML = libraryResults(); }
     else if (kind === "browse-q") { state.browse.q = el.value; const pos = el.selectionStart; refreshBrowser(); const s = $("#browse-search"); s.focus(); s.setSelectionRange(pos, pos); }
@@ -1660,6 +1660,7 @@
     el.removeAttribute("aria-invalid");
   }
   function onChange(e) {
+    if (document.body.classList.contains("is-onboarding")) return;
     const el = e.target, ch = el.dataset.change;
     if (ch === "library-sort") { state.librarySort = el.value; $("#library-results").innerHTML = libraryResults(); }
     else if (ch === "builder-deck") { state.builder.deckId = el.value; render(); }
@@ -1676,6 +1677,7 @@
     }
   }
   function onKey(e) {
+    if (document.body.classList.contains("is-onboarding")) return;
     trapFocus(e);
     const r = parseRoute();
     if (e.key === "Escape") {
@@ -1712,13 +1714,20 @@
   }
 
   /* ---------- boot -------------------------------------------------------- */
+  function enterApp(acct) {
+    ME = acct;
+    S.useAccount(acct); S.load(template() || blankTemplate());
+    $("#app").innerHTML = shell();
+    currentRoute = "#/home"; try { history.replaceState(null, "", currentRoute); } catch { /* sandboxed */ }
+    render(); window.scrollTo(0, 0);
+  }
   function boot() {
     const theme = prefs.get("theme", null); if (theme) document.documentElement.dataset.theme = theme;
-    S.load();
-    $("#app").innerHTML = shell();
     document.addEventListener("click", onClick); document.addEventListener("input", onInput); document.addEventListener("change", onChange); document.addEventListener("keydown", onKey); document.addEventListener("toggle", onToggle, true);
-    window.addEventListener("hashchange", () => { if (/^#\//.test(location.hash) && location.hash !== currentRoute) { currentRoute = location.hash; onRouteChange(); } });
-    render();
+    window.addEventListener("hashchange", () => { if (!ME) return; if (/^#\//.test(location.hash) && location.hash !== currentRoute) { currentRoute = location.hash; onRouteChange(); } });
+    const acct = OB.current();
+    if (acct) { ME = acct; S.useAccount(acct); S.load(template() || blankTemplate()); $("#app").innerHTML = shell(); render(); }
+    else OB.start(enterApp);
   }
   boot();
 })();

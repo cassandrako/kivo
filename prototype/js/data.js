@@ -7,10 +7,9 @@
    ========================================================================== */
 
 window.KIVO_SEED = (() => {
-  const user = {
-    name: "Alex", fullName: "Alex Rivera", initials: "AR",
-    program: "Doctor of Optometry", year: "OD1", school: "Pennsylvania College of Optometry",
-  };
+  const user = { name: "Alex", fullName: "Alex Rivera", initials: "AR", role: "OD1 · Optometry" };
+  const profile = { first: "Alex", last: "Rivera", email: "alex.rivera@gmail.com", role: "optometry", degree: "OD", school: "Pennsylvania College of Optometry", year: "OD1", gradYear: "2030", boards: "NBEO Part I" };
+  const extraCourses = ["Ocular Physiology", "Neuroanatomy", "Optometric Theory & Methods"];
 
   // Semesters are top-level folders. Archiving one folds it away in the
   // Library and pauses its reviews until it's restored.
@@ -150,5 +149,5 @@ window.KIVO_SEED = (() => {
   /* Reviews per day before today, so Insights has a history to show. */
   const sampleActivity = [42, 38, 0, 55, 61, 47, 22, 35, 58, 64, 0, 40, 52, 70, 66, 45, 30, 0, 48, 57, 62, 71, 39, 44, 68, 59, 63];
 
-  return { user, semesters, courses, units, decks, notes, sampleCalendar, sampleActivity };
+  return { id: "optometry", user, profile, extraCourses, semesters, courses, units, decks, notes, sampleCalendar, sampleActivity };
 })();

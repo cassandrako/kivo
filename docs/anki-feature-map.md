@@ -95,7 +95,8 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | Export (`.apkg`, text) | | 🔜 |
 | AnkiWeb sync across devices | | ⏳ |
 | Shared decks (AnkiWeb) | Personal-first sharing: everyone gets their own copy and updates arrive as suggestions | ⏳ (designed, simulated) |
-| Profiles, backups, check database | Reset sample data only for now | 🔜 / ⏳ |
+| Profiles | Accounts with sign up (Apple, Google, email) and onboarding by program; each account has its own library. Sign-in is simulated in this browser until the backend lands. | ✅ (simulated) · ⏳ (real sign-in) |
+| Backups, check database | Reset sample data only for now | 🔜 / ⏳ |
 | Add-ons | Not planned; common add-on needs (image occlusion, FSRS, heatmaps) are built in | ➖ |
 | Night mode | Light and dark themes, following the system setting | ✅ |
 | Keyboard shortcuts | Study, editor (`⌘↵` save), `A` add, `/` search | ✅ |

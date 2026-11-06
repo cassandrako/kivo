@@ -10,7 +10,8 @@
 window.KivoStore = (() => {
   "use strict";
   const SEED = window.KIVO_SEED;
-  const KEY = "kivo:db:v4";
+  let KEY = "kivo:db:v4";
+  let user = { fullName: "You", initials: "ME" };
   const MIN = 60000, HOUR = 3600000, DAY = 86400000;
 
   /* ---------- FSRS-5 --------------------------------------------------- */
@@ -42,21 +43,25 @@ window.KivoStore = (() => {
   let db = null;
   const uid = (p) => `${p}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
   function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* storage full or blocked */ } }
-  function load() {
+  /* Each account has its own library in this browser. */
+  function useAccount(acct) { KEY = "kivo:db:v4:" + acct.id; user = { fullName: acct.fullName, initials: acct.initials }; db = null; }
+  function load(template = SEED) {
     try { const raw = localStorage.getItem(KEY); if (raw) { db = JSON.parse(raw); if (db && db.v === 4) return db; } } catch { /* fall through to seed */ }
-    db = seed(); save(); return db;
+    db = seed(template); save(); return db;
   }
+  function build(template, options = {}) { db = seed(template); db.options = options; save(); return db; }
+  function hasLibrary() { try { return !!localStorage.getItem(KEY); } catch { return false; } }
 
-  function seed() {
+  function seed(T = SEED) {
     const now = Date.now(), today = startOfDay(now);
     const d = { v: 4, created: now, semesters: [], courses: [], units: [], decks: [], notes: [], cards: [], log: [], options: {}, sampleActivity: [] };
-    SEED.semesters.forEach((x, i) => d.semesters.push({ ...x, order: i, created: now - 120 * DAY }));
-    SEED.courses.forEach((c, i) => d.courses.push({ ...c, order: i, created: now - 60 * DAY }));
+    (T.semesters || []).forEach((x, i) => d.semesters.push({ archived: false, ...x, order: i, created: now - 120 * DAY }));
+    (T.courses || []).forEach((c, i) => d.courses.push({ hue: "lavender", code: "", ...c, order: i, created: now - 60 * DAY }));
     const iso = (t) => { const x = new Date(t); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
-    SEED.units.forEach(({ offset, ...u }, i) => d.units.push({ source: "manual", ...u, date: offset == null ? "" : iso(today + offset * DAY), order: i, created: now - 50 * DAY }));
-    SEED.decks.forEach((x, i) => d.decks.push({ tags: [], description: "", ...x, order: i, created: now - 40 * DAY + i * DAY, modified: now - (i % 6) * DAY }));
+    (T.units || []).forEach(({ offset, ...u }, i) => d.units.push({ source: "manual", ...u, date: offset == null ? "" : iso(today + offset * DAY), order: i, created: now - 50 * DAY }));
+    (T.decks || []).forEach((x, i) => d.decks.push({ tags: [], description: "", topic: "", creator: { name: user.fullName, initials: user.initials }, source: "original", ...x, order: i, created: now - 40 * DAY + i * DAY, modified: now - (i % 6) * DAY }));
     let n = 0;
-    for (const raw of SEED.notes) {
+    for (const raw of T.notes || []) {
       const note = { id: `n${++n}`, created: now - 30 * DAY + n * HOUR, modified: now - (n % 9) * DAY, tags: [], ...raw };
       d.notes.push(note);
       for (const ord of cardOrds(note)) {
@@ -73,10 +78,11 @@ window.KivoStore = (() => {
         d.cards.push(card);
       }
     }
-    d.sampleActivity = SEED.sampleActivity.map((count, i) => ({ day: today - (SEED.sampleActivity.length - i) * DAY, count }));
+    const act = T.sampleActivity || [];
+    d.sampleActivity = act.map((count, i) => ({ day: today - (act.length - i) * DAY, count }));
     return d;
   }
-  function resetToSample() { db = seed(); save(); return db; }
+  function resetToSample(template = SEED) { db = seed(template); save(); return db; }
 
   /* ---------- notes → cards -------------------------------------------- */
   const clozeNums = (text) => [...new Set([...String(text || "").matchAll(/\{\{c(\d+)::/g)].map((m) => +m[1]))].sort((a, b) => a - b);
@@ -285,7 +291,7 @@ window.KivoStore = (() => {
   }
   function addUnit(courseId, name, extra = {}) { const u = { id: uid("u"), courseId, name, kind: "Exam", date: "", time: "", source: "manual", ...extra, order: unitsOf(courseId).length, created: Date.now() }; db.units.push(u); save(); return u; }
   function addDeck(data) {
-    const x = { id: uid("d"), tags: [], description: "", lecture: "", topic: "", assessment: "", creator: { name: SEED.user.fullName, initials: SEED.user.initials }, source: "original", ...data, order: db.decks.length, created: Date.now(), modified: Date.now() };
+    const x = { id: uid("d"), tags: [], description: "", lecture: "", topic: "", assessment: "", creator: { name: user.fullName, initials: user.initials }, source: "original", ...data, order: db.decks.length, created: Date.now(), modified: Date.now() };
     db.decks.push(x); save(); return x;
   }
   function update(kind, id, patch) {
@@ -359,7 +365,7 @@ window.KivoStore = (() => {
   }
 
   return {
-    load, save, resetToSample, get db() { return db; }, DAY, MIN, startOfDay, endOfDay, DEFAULT_OPTIONS,
+    load, save, resetToSample, useAccount, build, hasLibrary, get db() { return db; }, DAY, MIN, startOfDay, endOfDay, DEFAULT_OPTIONS,
     semester, semesterList, coursesIn, paused, addSemester, removeSemester,
     course, unit, deck, note, card, options, unitsOf, decksOf, scopeDeckIds, scopeLabel,
     queue, counts, nextCard, preview, answer, undo, bury, setSuspended, setFlag, resetCards,

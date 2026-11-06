@@ -1416,7 +1416,7 @@
     return `
       <a class="skip-link" href="#view">Skip to content</a>
       <aside class="sidebar" aria-label="Primary">
-        <div class="brand"><span class="brand__mark" aria-hidden="true">${brandMark()}</span><span class="brand__name">Kivo</span></div>
+        <div class="brand"><span class="brand__mark" aria-hidden="true">${brandMark()}</span><span class="brand__name">kivo.</span></div>
         <div class="sidebar__actions"><button class="sidebar__search" data-action="focus-search">${icon("search", 16)}<span>Search</span><kbd>/</kbd></button>
           <a class="btn btn--primary sidebar__new" href="#/builder" title="Add card (A)">${icon("plus", 16)}<span>Add card</span></a></div>
         <nav><ul class="nav">${NAV.map((n) => `<li><a class="nav__item" href="#/${n.id}" data-nav="${n.id}">${icon(n.icon, 18)}<span>${n.label}</span>${n.id === "study" ? `<span class="nav__count" id="nav-due"></span>` : ""}</a></li>`).join("")}</ul></nav>
@@ -1425,14 +1425,14 @@
           <div class="sidebar__user">${avatar(SEED.user.initials, "sm")}<span><strong>${esc(SEED.user.fullName)}</strong><small>${esc(SEED.user.year)} · Optometry</small></span></div></div>
       </aside>
       <div class="main">
-        <header class="appbar"><span class="brand brand--sm"><span class="brand__mark" aria-hidden="true">${brandMark()}</span><span class="brand__name">Kivo</span></span>
+        <header class="appbar"><span class="brand brand--sm"><span class="brand__mark" aria-hidden="true">${brandMark()}</span><span class="brand__name">kivo.</span></span>
           <div class="appbar__actions"><a class="icon-btn" href="#/builder" aria-label="Add card">${icon("plus", 20)}</a><button class="icon-btn" data-action="toggle-theme" aria-label="Toggle dark mode">${icon("moon", 18)}</button></div></header>
         <main id="view" tabindex="-1"></main>
       </div>
       <nav class="tabbar" aria-label="Primary">${NAV.map((n) => `<a class="tabbar__item" href="#/${n.id}" data-nav="${n.id}">${icon(n.icon, 22)}<span>${n.short || n.label}</span>${n.id === "study" ? `<span class="tabbar__badge" hidden></span>` : ""}</a>`).join("")}</nav>
       <div id="modal-root" hidden></div><div id="toast-root" class="toast-root" aria-live="polite"></div>`;
   }
-  const brandMark = () => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="13" height="16" rx="3" fill="currentColor" opacity=".35"/><rect x="8" y="3" width="13" height="16" rx="3" fill="currentColor"/><path d="m12 11 2 2 3.5-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const brandMark = () => `<svg width="28" height="28" viewBox="0 0 100 100" role="img" aria-label="Kivo fox logo"><path d="M12 36V9.5C12 4.5 16.5 3 19.5 6.5L40 30H12z" fill="#A68DF5"/><path d="M88 36V9.5C88 4.5 83.5 3 80.5 6.5L60 30h28z" fill="#A68DF5"/><path d="M13 29h74v38c0 3-2 5-5 6.5L60 85c-3 1.8-5 3-10 3s-7-1.2-10-3L18 73.5c-3-1.5-5-3.5-5-6.5z" fill="#A68DF5"/><path d="M13 61.5c13-3.5 24 1 33 19l-2.5 2.5C36 69 26 66 13 69.5z" fill="#E4DCFB"/><path d="M87 61.5c-13-3.5-24 1-33 19l2.5 2.5C64 69 74 66 87 69.5z" fill="#E4DCFB"/><circle cx="37.5" cy="51" r="4.2" fill="#463A6E"/><circle cx="62.5" cy="51" r="4.2" fill="#463A6E"/><path d="M43.5 81.5h13c-.8 5-3.3 8.5-6.5 8.5s-5.7-3.5-6.5-8.5z" fill="#463A6E"/></svg>`;
   const TITLES = { home: "Home", library: "My Library", course: "Course", collection: "Collection", builder: "Card editor", study: "Study", quiz: "Practice quiz", exams: "Exams", insights: "Insights" };
   function render() {
     let r = parseRoute();

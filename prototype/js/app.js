@@ -307,7 +307,7 @@
     const data = `${course ? ` data-course="${course}"` : ""}${unit ? ` data-unit="${unit}"` : ""}`;
     return `<details class="menu menu--new"><summary class="btn btn--primary">${icon("plus", 16)}New${icon("chevronDown", 14)}</summary>
       <div class="menu__list menu__list--wide" role="menu">${items.map((i) => i.href
-        ? `<a role="menuitem" class="menu__item menu__item--rich" href="${i.href}${course ? "" : ""}">${icon(i.icon, 18)}<span><strong>${i.label}</strong><small>${i.sub}</small></span></a>`
+        ? `<a role="menuitem" class="menu__item menu__item--rich" href="${i.href}${course ? `?course=${course}${unit ? `&unit=${unit}` : ""}` : ""}">${icon(i.icon, 18)}<span><strong>${i.label}</strong><small>${i.sub}</small></span></a>`
         : `<button role="menuitem" class="menu__item menu__item--rich" data-action="${i.action}"${data}>${icon(i.icon, 18)}<span><strong>${i.label}</strong><small>${i.sub}</small></span></button>`).join("")}
         <hr><button role="menuitem" class="menu__item menu__item--rich" data-action="open-import"${course ? ` data-course="${course}"` : ""}>${icon("upload", 18)}<span><strong>Import cards</strong><small>From Anki, Quizlet or a spreadsheet</small></span></button></div></details>`;
   }
@@ -496,20 +496,49 @@
     { id: "occlusion", name: "Image occlusion", desc: "Hide labels on a diagram and recall them.", best: "Anatomy, foramina" },
   ];
   const blankFields = () => ({ basic: { front: "", back: "", extra: "", points: "" }, reverse: { front: "", back: "", extra: "" }, cloze: { text: "", extra: "" }, occlusion: { prompt: "Identify the masked foramen.", masked: [], extra: "" } });
-  function startBuilder(deckId, noteId) {
+  /* Which collection a new card goes into:
+     1. the collection in the URL; 2. the course/exam in the URL or the page you came from
+     (newest collection there, or none yet: ask to make one); 3. the last collection you added to;
+     4. your most recently edited collection. Archived semesters are never picked automatically. */
+  const lastDeckKey = () => "lastDeck:" + (ME?.id || "");
+  function resolveTarget(deckId, query) {
+    if (deckId && S.deck(deckId)) return { deckId };
+    const ctx = state.ctx || {};
+    if (!query?.get("course") && ctx.deck && S.deck(ctx.deck)) return { deckId: ctx.deck };
+    const courseId = query?.get("course") || ctx.course || null;
+    const unitId = query?.get("unit") || (query?.get("course") ? null : ctx.unit) || null;
+    const newest = (list) => list.sort((a, b) => (S.lastStudied([b.id]) || b.modified || 0) - (S.lastStudied([a.id]) || a.modified || 0))[0];
+    if (courseId && S.course(courseId)) {
+      const inCourse = S.db.decks.filter((d) => d.courseId === courseId);
+      const last = S.deck(prefs.get(lastDeckKey(), null));
+      const pick = (unitId && newest(inCourse.filter((d) => d.unitId === unitId))) || (last?.courseId === courseId && last) || newest(inCourse);
+      return pick ? { deckId: pick.id } : { deckId: null, needCourse: courseId, needUnit: unitId };
+    }
+    const last = S.deck(prefs.get(lastDeckKey(), null));
+    if (last && !isArchived(last.courseId)) return { deckId: last.id };
+    const any = newest(S.db.decks.filter((d) => !isArchived(d.courseId)));
+    return any ? { deckId: any.id } : { deckId: null, needCourse: activeCourses()[0]?.id || null };
+  }
+  function startBuilder(deckId, noteId, query) {
     const n = noteId ? S.note(noteId) : null;
     const fields = blankFields();
     if (n) fields[n.type] = JSON.parse(JSON.stringify(n.fields));
-    const lastDeck = prefs.get("lastDeck", null);
-    const fallbackDeck = deckId && S.deck(deckId) ? deckId : (lastDeck && S.deck(lastDeck) ? lastDeck : S.db.decks.find((d) => !isArchived(d.courseId))?.id || S.db.decks[0]?.id || null);
-    state.builder = { key: `${deckId}|${noteId || ""}`, noteId: n?.id || null, deckId: n?.deckId || fallbackDeck, type: n?.type || prefs.get("lastType", "basic"), fields, tags: (n?.tags || []).filter((t) => t !== "leech").join(", "), section: n?.section ?? prefs.get("lastSection:" + fallbackDeck, ""), side: "front", previewOrd: null, advanced: !!n, added: 0, confirmDelete: false };
+    const target = n ? { deckId: n.deckId } : resolveTarget(deckId, query);
+    const fallbackDeck = target.deckId;
+    state.builder = { key: builderKey(deckId, noteId, query), needCourse: target.needCourse || null, needUnit: target.needUnit || null, noteId: n?.id || null, deckId: fallbackDeck, type: n?.type || prefs.get("lastType", "basic"), fields, tags: (n?.tags || []).filter((t) => t !== "leech").join(", "), section: n?.section ?? prefs.get("lastSection:" + fallbackDeck, ""), side: "front", previewOrd: null, advanced: !!n, added: 0, confirmDelete: false };
   }
+  const builderKey = (deckId, noteId, query) => `${deckId || ""}|${noteId || ""}|${query?.get("course") || ""}|${query?.get("unit") || ""}`;
   function viewBuilder(deckId, query) {
     const noteId = query.get("note");
-    const key = `${deckId}|${noteId || ""}`;
-    if (!state.builder || state.builder.key !== key) startBuilder(deckId, noteId);
+    if (!state.builder || state.builder.key !== builderKey(deckId, noteId, query)) startBuilder(deckId, noteId, query);
     const b = state.builder;
-    if (!S.db.decks.length || !S.deck(b.deckId)) return emptyState("Create a collection first", "Cards live in collections. Make one inside a course, then add cards to it.", `<button class="btn btn--primary" data-action="open-deck-form">${icon("plus", 16)}New collection</button>`, "layers");
+    if (!S.deck(b.deckId)) {
+      const c = b.needCourse && S.course(b.needCourse), u = b.needUnit && S.unit(b.needUnit);
+      if (!S.db.courses.length) return emptyState("Make a course first", "Cards live in lecture collections, inside a course.", `<button class="btn btn--primary" data-action="open-course-form">${icon("plus", 16)}New course</button>`, "book");
+      return emptyState(c ? `${c.name} has no lecture collections yet` : "Make a lecture collection first",
+        `Cards live in a lecture collection${u ? ` (here, inside ${u.name})` : ""}, like an Anki deck. Make one, and you’ll come right back here to add the card.`,
+        `<button class="btn btn--primary" data-action="open-deck-form" ${c ? `data-course="${c.id}"` : ""} ${u ? `data-unit="${u.id}"` : ""}>${icon("plus", 16)}New lecture collection${c ? ` in ${esc(c.name)}` : ""}</button>`, "layers");
+    }
     const d = S.deck(b.deckId), c = S.course(d.courseId);
     const editing = !!b.noteId, n = editing ? S.note(b.noteId) : null;
     if (editing && !n) return viewNotFound();
@@ -526,7 +555,7 @@
       </header>
       <div class="builder-deck">
         <label class="field field--inline"><span class="field__label">Collection</span>
-          <select id="builder-deck" data-change="builder-deck">${S.db.courses.map((co) => { const ds = S.db.decks.filter((x) => x.courseId === co.id); return ds.length ? `<optgroup label="${esc(co.name)}${isArchived(co.id) ? " (archived)" : ""}">${ds.map((x) => `<option value="${x.id}" ${x.id === b.deckId ? "selected" : ""}>${esc([x.unitId ? S.unit(x.unitId)?.name : "", x.title].filter(Boolean).join(" › "))}</option>`).join("")}</optgroup>` : ""; }).join("")}</select></label>
+          <select id="builder-deck" data-change="builder-deck">${S.db.courses.filter((co) => !isArchived(co.id) || co.id === d.courseId).map((co) => { const ds = S.db.decks.filter((x) => x.courseId === co.id); return ds.length ? `<optgroup label="${esc(co.name)}${isArchived(co.id) ? " (archived)" : ""}">${ds.map((x) => { const un = x.unitId ? S.unit(x.unitId) : null; return `<option value="${x.id}" ${x.id === b.deckId ? "selected" : ""}>${un ? `${esc(un.name)} › ` : ""}${esc(x.title)}</option>`; }).join("")}</optgroup>` : ""; }).join("")}</select></label>
         <button class="link" data-action="open-deck-form" data-course="${d.courseId}">${icon("plus", 14)}New collection</button>
       </div>
       ${editing ? "" : `<section aria-labelledby="tpl-title"><h2 id="tpl-title" class="overline section-label">Template</h2>
@@ -614,7 +643,7 @@
     if (b.noteId && S.note(b.noteId)?.tags.includes("leech")) tags.push("leech");
     const saved = S.saveNote({ ...(b.noteId ? { id: b.noteId } : {}), deckId: b.deckId, type: b.type, fields: n.fields, tags, section: b.section.trim() });
     const count = S.cardOrds(saved).length;
-    prefs.set("lastType", b.type); prefs.set("lastDeck", b.deckId); prefs.set("lastSection:" + b.deckId, b.section.trim());
+    prefs.set("lastType", b.type); prefs.set(lastDeckKey(), b.deckId); prefs.set("lastSection:" + b.deckId, b.section.trim());
     if (b.noteId) {
       toast("Card saved", { tone: "success" });
       state.builder = null;
@@ -672,7 +701,7 @@
       ${S.db.courses.length ? `<div class="table-wrap card tree-wrap"><table class="table tree">
         <thead><tr><th scope="col">Course › Exam › Lecture</th><th scope="col" class="cnt-col cnt-col--new">New</th><th scope="col" class="cnt-col cnt-col--learn">Learn</th><th scope="col" class="cnt-col cnt-col--review">Due</th><th scope="col"><span class="sr-only">Study</span></th></tr></thead>
         <tbody>${tree}</tbody></table></div>` : emptyState("Nothing to study yet", "Create a course and add cards to it first.", `<button class="btn btn--primary" data-action="open-course-form">New course</button>`, "study")}
-      ${prototypeNote(`Counts follow each course’s daily limits (default 20 new and 200 reviews a day), set in a course’s Review settings.${pausedN ? ` ${plural(pausedN, "archived semester")} ${pausedN === 1 ? "is" : "are"} paused and hidden; restore one from the Library to study it.` : ""}`)}`;
+      ${prototypeNote(`Counts follow your daily limits (${S.accountOptions().newPerDay} new and ${S.accountOptions().reviewsPerDay} reviews a day per course), set in Study settings; a course can use its own in its Review settings.${pausedN ? ` ${plural(pausedN, "archived semester")} ${pausedN === 1 ? "is" : "are"} paused and hidden; restore one from the Library to study it.` : ""}`)}`;
   }
 
   function startSession(param) {
@@ -969,7 +998,7 @@
   function openExamForm(id, course) {
     if (!S.db.courses.length) { openCourseForm(); toast("Create a course first. Exams live inside courses."); return; }
     const u = id ? S.unit(id) : null;
-    const d = u ? examOf(u) : { title: "", kind: "Exam", courseId: course || activeCourses()[0]?.id || S.db.courses[0].id, date: "", time: "" };
+    const d = u ? examOf(u) : { title: "", kind: "Exam", courseId: course || (S.course(state.ctx?.course) && state.ctx.course) || activeCourses()[0]?.id || S.db.courses[0].id, date: "", time: "" };
     openModal(`
       <header class="modal__head"><h2 class="heading">${u ? "Edit exam" : "New exam"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
       <form class="modal__body" id="exam-form" novalidate>
@@ -1233,12 +1262,17 @@
       <footer class="modal__foot"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--primary" data-action="unit-save" data-id="${u?.id || ""}">${u ? "Save" : "Create unit"}</button></footer>`,
       { label: u ? "Rename unit" : "New unit", onMount: (m) => $("#unit-form", m).addEventListener("submit", (e) => { e.preventDefault(); actions["unit-save"]({ dataset: { id: u?.id || "" } }); }) });
   }
+  // The exam a new lecture most likely belongs to: the next one coming up, else the latest.
+  function nextUnitId(courseId) {
+    const us = S.unitsOf(courseId);
+    return (us.find((u) => u.date && daysUntil(u.date) >= 0) || us.filter((u) => !u.date)[0] || us[us.length - 1])?.id || "";
+  }
   function openDeckForm({ id, course, unit, del } = {}) {
     const d = id ? S.deck(id) : null;
     if (d && del) return openModal(`<header class="modal__head"><h2 class="heading">Delete ${esc(d.title)}?</h2></header><div class="modal__body">${confirmBlock(`This deletes ${plural(S.deckStats([id]).total, "card")} and their review history. This can’t be undone.`, "deck-delete", { id })}</div>`, { label: "Delete collection", size: "sm" });
     if (!S.db.courses.length) { openCourseForm(); toast("Start with a course. Collections live inside courses."); return; }
-    const courseId = d?.courseId || course || activeCourses()[0]?.id || S.db.courses[0].id;
-    const unitId = d ? d.unitId || "" : unit ?? (S.unitsOf(courseId)[0]?.id || "");
+    const courseId = d?.courseId || course || (S.course(state.ctx?.course) && state.ctx.course) || activeCourses()[0]?.id || S.db.courses[0].id;
+    const unitId = d ? d.unitId || "" : unit ?? (state.ctx?.course === courseId && state.ctx.unit) ?? nextUnitId(courseId);
     const unitOpts = (cid, sel) => `<option value="">Not in an exam yet</option>${S.unitsOf(cid).map((u) => `<option value="${u.id}" ${u.id === sel ? "selected" : ""}>${esc(u.name)}${u.date ? ` · ${fmtDate(u.date, { month: "short", day: "numeric" })}` : ""}</option>`).join("")}<option value="__new">+ New exam…</option>`;
     openModal(`
       <header class="modal__head"><h2 class="heading">${d ? "Edit lecture collection" : "New lecture collection"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
@@ -1528,6 +1562,9 @@
   function onRouteChange() {
     closeModal(true);
     const r = parseRoute();
+    if (r.name === "course" && S.course(r.id)) state.ctx = { course: r.id };
+    else if (r.name === "collection" && S.deck(r.id)) { const d = S.deck(r.id); state.ctx = { course: d.courseId, unit: d.unitId || null, deck: d.id }; }
+    else if (r.name !== "builder") state.ctx = null;
     if (r.name !== "collection") state.browse = { q: "", filter: "all", section: "All" };
     if (!(r.name === "study" && r.id) && !(r.name === "builder" && state.returnTo)) state.session = null;
     if (r.name !== "builder") state.builder = null;
@@ -1587,6 +1624,7 @@
     "deck-save": (el) => {
       const title = $("#deck-title").value.trim() || $("#deck-lecture").value.trim(); if (!title) return formError("Add the lecture topic, like “Cavernous Sinus”.", $("#deck-title"));
       const courseId = $("#deck-course").value; let unitId = $("#deck-unit").value || null;
+      if (unitId && unitId !== "__new" && S.unit(unitId)?.courseId !== courseId) unitId = null;
       if (unitId === "__new") { const un = $("#deck-newunit").value.trim(); if (!un) return formError("Name the new exam, like “Exam 3”.", $("#deck-newunit")); unitId = S.addUnit(courseId, un).id; }
       const data = { title, courseId, unitId, lecture: $("#deck-lecture").value.trim(), topic: $("#deck-topic").value.trim(), description: $("#deck-desc").value.trim() };
       if (el.dataset.id) { S.update("deck", el.dataset.id, data); for (const c of S.db.cards) if (c.deckId === el.dataset.id) c.deckId = el.dataset.id; S.save(); closeModal(true); render(); toast("Collection saved", { tone: "success" }); return; }

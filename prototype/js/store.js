@@ -49,7 +49,7 @@ window.KivoStore = (() => {
     try { const raw = localStorage.getItem(KEY); if (raw) { db = JSON.parse(raw); if (db && db.v === 4) return db; } } catch { /* fall through to seed */ }
     db = seed(template); save(); return db;
   }
-  function build(template, options = {}) { db = seed(template); db.options = options; save(); return db; }
+  function build(template, options = {}) { db = seed(template); db.options = options; db.noSamples = true; save(); return db; }
   function hasLibrary() { try { return !!localStorage.getItem(KEY); } catch { return false; } }
 
   function seed(T = SEED) {
@@ -81,6 +81,33 @@ window.KivoStore = (() => {
     const act = T.sampleActivity || [];
     d.sampleActivity = act.map((count, i) => ({ day: today - (act.length - i) * DAY, count }));
     return d;
+  }
+  /* Libraries made before Kivo dropped sample cards still hold the sample
+     notes (ids n1, n2, …), their collections, an archived sample semester and
+     fake activity. Remove them once; anything the student made is kept. */
+  function removeSampleContent(templates = []) {
+    if (!db || db.noSamples) return false;
+    const sampleDeckIds = new Set(templates.flatMap((t) => (t.decks || []).map((x) => x.id)));
+    const sampleSemIds = new Set(templates.flatMap((t) => (t.semesters || []).filter((x) => x.archived).map((x) => x.id)));
+    const isSampleNote = (n) => /^n\d+$/.test(n.id);
+    const goneNotes = new Set(db.notes.filter(isSampleNote).map((n) => n.id));
+    const goneCards = new Set(db.cards.filter((c) => goneNotes.has(c.noteId)).map((c) => c.id));
+    db.notes = db.notes.filter((n) => !goneNotes.has(n.id));
+    db.cards = db.cards.filter((c) => !goneCards.has(c.id));
+    db.log = db.log.filter((l) => !goneCards.has(l.cardId));
+    db.decks = db.decks.filter((x) => !sampleDeckIds.has(x.id) || db.notes.some((n) => n.deckId === x.id));
+    for (const semId of sampleSemIds) {
+      const cs = db.courses.filter((c) => c.semesterId === semId);
+      const empty = cs.every((c) => !db.decks.some((x) => x.courseId === c.id));
+      if (!empty) continue;
+      const ids = new Set(cs.map((c) => c.id));
+      db.units = db.units.filter((u) => !ids.has(u.courseId));
+      db.courses = db.courses.filter((c) => !ids.has(c.id));
+      db.semesters = db.semesters.filter((x) => x.id !== semId);
+    }
+    db.sampleActivity = [];
+    db.noSamples = true; save();
+    return goneNotes.size > 0;
   }
   function resetToSample(template = SEED) { db = seed(template); save(); return db; }
 
@@ -370,7 +397,7 @@ window.KivoStore = (() => {
   }
 
   return {
-    load, save, resetToSample, accountOptions, setAccountOptions, hasOwnOptions, useAccount, build, hasLibrary, get db() { return db; }, DAY, MIN, startOfDay, endOfDay, DEFAULT_OPTIONS,
+    load, save, resetToSample, removeSampleContent, accountOptions, setAccountOptions, hasOwnOptions, useAccount, build, hasLibrary, get db() { return db; }, DAY, MIN, startOfDay, endOfDay, DEFAULT_OPTIONS,
     semester, semesterList, coursesIn, paused, addSemester, removeSemester,
     course, unit, deck, note, card, options, unitsOf, decksOf, scopeDeckIds, scopeLabel,
     queue, counts, nextCard, preview, answer, undo, bury, setSuspended, setFlag, resetCards,

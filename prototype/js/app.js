@@ -135,6 +135,7 @@
   const breadcrumb = (items) => `<nav class="breadcrumb" aria-label="Breadcrumb"><ol>${items.map((it, i) => `<li>${it.href && i < items.length - 1 ? `<a href="${it.href}">${esc(it.label)}</a>` : `<span aria-current="page">${esc(it.label)}</span>`}</li>`).join(`<li aria-hidden="true" class="breadcrumb__sep">${icon("chevronRight", 14)}</li>`)}</ol></nav>`;
   const emptyState = (title, body, action = "", ic = "search") => `<div class="empty"><div class="empty__icon">${icon(ic, 22)}</div><h3>${esc(title)}</h3><p>${esc(body)}</p>${action}</div>`;
   const prototypeNote = (text) => `<p class="proto-note">${icon("info", 14)}<span>${text}</span></p>`;
+  const GRIP = `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></g></svg>`;
   const menu = (id, items) => `<details class="menu" data-menu="${id}"><summary class="icon-btn" aria-label="More actions">${icon("more", 18)}</summary><div class="menu__list" role="menu">${items.filter(Boolean).map((it) => it === "-" ? `<hr>` : `<button role="menuitem" class="menu__item ${it.danger ? "is-danger" : ""}" data-action="${it.action}" ${Object.entries(it.data || {}).map(([k, v]) => `data-${k}="${esc(v)}"`).join(" ")}>${icon(it.icon, 16)}${esc(it.label)}</button>`).join("")}</div></details>`;
   const deckLabel = (d) => { const c = S.course(d.courseId), u = d.unitId ? S.unit(d.unitId) : null; return [c?.name, u?.name, d.title].filter(Boolean).join(" › "); };
   const courseCrumbs = (c) => { const sem = S.semester(c.semesterId); return [{ label: "My Library", href: "#/library" }, ...(sem ? [{ label: sem.name, href: "#/library" }] : [])]; };
@@ -193,13 +194,18 @@
   function tourSteps() {
     const c = activeCourses()[0] || S.db.courses[0];
     const u = c ? S.unitsOf(c.id).find((x) => x.date && daysUntil(x.date) >= 0) || S.unitsOf(c.id)[0] : null;
-    const deck = S.db.decks.find((d) => !isArchived(d.courseId)) || S.db.decks[0];
-    const withCards = S.db.decks.find((d) => S.db.cards.some((x) => x.deckId === d.id));
+    // Only the student's active courses count; archived semesters have reviews paused.
+    const activeDecks = S.db.decks.filter((d) => !isArchived(d.courseId));
+    const activeNotes = S.db.notes.filter((n) => activeDecks.some((d) => d.id === n.deckId));
+    const last = S.deck(prefs.get(lastDeckKey(), null));
+    const deck = (last && !isArchived(last.courseId) && last) || activeDecks.slice().sort((a, b) => (b.modified || 0) - (a.modified || 0))[0];
+    const due = (d) => d && S.counts("deck:" + d.id).total > 0;
+    const withCards = (due(last) && !isArchived(last.courseId) && last) || activeDecks.filter(due).sort((a, b) => (b.modified || 0) - (a.modified || 0))[0];
     const seen = prefs.get(tourKey(), {});
     return [
-      { done: S.db.decks.length > 0, title: "Make a lecture collection", body: `Like an Anki deck: one per lecture${u && c ? `, filed under ${esc(c.name)} · ${esc(u.name)}` : ""}.`, btn: `<button class="btn btn--primary btn--sm" data-action="open-deck-form" ${c ? `data-course="${c.id}"` : ""} ${u ? `data-unit="${u.id}"` : ""}>Make a collection</button>` },
-      { done: S.db.notes.length > 0, title: "Add your first card", body: "Basic, basic + reversed, cloze or image occlusion. One note can make several cards.", btn: deck ? `<a class="btn btn--primary btn--sm" href="#/builder/${deck.id}">Add a card</a>` : "" },
-      { done: S.db.log.length > 0, title: "Review it", body: "Show the answer, then rate Again, Hard, Good or Easy. Kivo schedules the next review with FSRS, like Anki.", btn: withCards ? `<a class="btn btn--primary btn--sm" href="#/study/${withCards.id}">Start review</a>` : "" },
+      { done: activeDecks.length > 0, title: "Make a lecture collection", body: `Like an Anki deck: one per lecture${u && c ? `, filed under ${esc(c.name)} · ${esc(u.name)}` : ""}.`, btn: `<button class="btn btn--primary btn--sm" data-action="open-deck-form" ${c ? `data-course="${c.id}"` : ""} ${u ? `data-unit="${u.id}"` : ""}>Make a collection</button>` },
+      { done: activeNotes.length > 0, title: "Add your first card", body: "Basic, basic + reversed, cloze or image occlusion. One note can make several cards.", btn: deck ? `<a class="btn btn--primary btn--sm" href="#/builder/${deck.id}">Add a card</a>` : "" },
+      { done: S.db.log.length > 0, title: "Review it", body: "Show the answer, then rate Again, Hard, Good or Easy. Kivo schedules the next review with FSRS, like Anki.", btn: withCards ? `<a class="btn btn--primary btn--sm" href="#/study/${withCards.id}">Review ${esc(withCards.title)}</a>` : activeNotes.length ? `<p class="caption">Your cards aren’t due yet. They come back on schedule.</p>` : "" },
       { done: !!seen.newMenu, title: "Find New in your Library", body: "Semesters, courses, exams, collections and cards all start from one New button.", btn: `<button class="btn btn--primary btn--sm" data-action="tour-new">Show me</button>` },
     ];
   }
@@ -371,13 +377,22 @@
         <div class="archive__body">${archived.map(semesterBlock).join("")}</div></details>` : ""}`;
   }
 
+  function moveItems(d) {
+    const items = S.unitsOf(d.courseId).filter((u) => u.id !== d.unitId).map((u) => ({ label: `Move to ${u.name}`, icon: "calendar", action: "deck-move", data: { id: d.id, unit: u.id } }));
+    if (d.unitId) items.push({ label: "Move out of the exam", icon: "layers", action: "deck-move", data: { id: d.id, unit: "" } });
+    const others = activeCourses().filter((c) => c.id !== d.courseId);
+    if (others.length) { items.push("-"); for (const c of others) items.push({ label: `Move to ${c.name}`, icon: "book", action: "deck-move", data: { id: d.id, course: c.id } }); }
+    return items;
+  }
   function deckRow(d) {
     const n = S.counts("deck:" + d.id), st = S.deckStats([d.id]);
-    return `<li class="deck-row">
-      <a class="deck-row__main" href="#/collection/${d.id}"><span class="row__icon">${icon("layers", 18)}</span>
+    return `<li class="deck-row" draggable="true" data-drag-deck="${d.id}">
+      <span class="deck-row__grip" aria-hidden="true" title="Drag to an exam">${GRIP}</span>
+      <a class="deck-row__main" href="#/collection/${d.id}" draggable="false"><span class="row__icon">${icon("layers", 18)}</span>
         <span class="row__main"><strong>${esc(d.title)}</strong><small>${esc([d.lecture, plural(st.total, "card")].filter(Boolean).join(" · "))}</small></span></a>
       <span class="deck-row__meta">${d.source !== "original" ? sourceBadge(d.source) : ""}${countPills(n)}</span>
-      <a class="btn btn--secondary btn--sm ${n.total ? "" : "is-quiet"}" href="#/study/${d.id}" aria-label="Study ${esc(d.title)}">${icon("play", 14)}Study</a>
+      <a class="btn btn--secondary btn--sm ${n.total ? "" : "is-quiet"}" href="#/study/${d.id}" aria-label="Study ${esc(d.title)}" draggable="false">${icon("play", 14)}Study</a>
+      ${moveItems(d).length ? menu("deck-move-" + d.id, moveItems(d)) : ""}
     </li>`;
   }
   function viewCourse(id) {
@@ -385,7 +400,7 @@
     const units = S.unitsOf(id), loose = S.decksOf(id, null), all = S.counts("course:" + id), st = S.deckStats(S.scopeDeckIds("course:" + id));
     const unitBlock = (u) => {
       const decks = S.decksOf(id, u.id), n = S.counts("unit:" + u.id);
-      return `<section class="unit card" aria-labelledby="unit-${u.id}">
+      return `<section class="unit card" aria-labelledby="unit-${u.id}" data-drop-unit="${u.id}" data-drop-label="${esc(u.name)}">
         <header class="unit__head">
           <div class="unit__title"><span class="unit__icon">${icon("calendar", 18)}</span><h2 id="unit-${u.id}" class="subhead">${esc(u.name)}</h2><span class="caption">${u.date ? `${esc(fmtDate(u.date))} · ${daysUntil(u.date) >= 0 ? daysLabel(daysUntil(u.date)) : "done"}` : `<button class="link" data-action="open-exam-form" data-id="${u.id}">Add date</button>`} · ${plural(decks.length, "lecture")}</span></div>
           <div class="unit__actions">${countPills(n)}
@@ -409,7 +424,8 @@
       </header>
       <div class="course-body">
         ${units.map(unitBlock).join("")}
-        ${loose.length ? `<section class="unit card"><header class="unit__head"><div class="unit__title"><span class="unit__icon">${icon("layers", 18)}</span><h2 class="subhead">Not in an exam yet</h2></div></header><ul class="deck-list">${loose.map(deckRow).join("")}</ul></section>` : ""}
+        ${!loose.length && units.length ? `<div class="drop-loose" data-drop-unit="" data-drop-label="Not in an exam">Drop here to take it out of the exam</div>` : ""}
+        ${loose.length ? `<section class="unit card" data-drop-unit="" data-drop-label="Not in an exam"><header class="unit__head"><div class="unit__title"><span class="unit__icon">${icon("layers", 18)}</span><h2 class="subhead">Not in an exam yet</h2></div></header><ul class="deck-list">${loose.map(deckRow).join("")}</ul></section>` : ""}
         ${!units.length && !loose.length ? emptyState("This course is empty", "Add an exam (like “Exam 1”), then a collection for each lecture on it.", `<div class="stack-h stack-h--center"><button class="btn btn--secondary" data-action="open-exam-form" data-course="${id}">${icon("calendar", 16)}New exam</button><button class="btn btn--primary" data-action="open-deck-form" data-course="${id}">${icon("plus", 16)}New lecture</button></div>`, "folder") : ""}
       </div>`;
   }
@@ -527,6 +543,20 @@
     const fallbackDeck = target.deckId;
     state.builder = { key: builderKey(deckId, noteId, query), needCourse: target.needCourse || null, needUnit: target.needUnit || null, noteId: n?.id || null, deckId: fallbackDeck, type: n?.type || prefs.get("lastType", "basic"), fields, tags: (n?.tags || []).filter((t) => t !== "leech").join(", "), section: n?.section ?? prefs.get("lastSection:" + fallbackDeck, ""), side: "front", previewOrd: null, advanced: !!n, added: 0, confirmDelete: false };
   }
+  /* Where the card goes, like Anki's deck chooser: course, then collection (Exam › Lecture). */
+  function destinationPicker(d) {
+    const courses = S.db.courses.filter((co) => !isArchived(co.id) || co.id === d?.courseId);
+    const courseId = d?.courseId || state.builder?.needCourse || courses[0]?.id || "";
+    const decks = S.db.decks.filter((x) => x.courseId === courseId)
+      .sort((x, y) => (S.unit(x.unitId)?.date || "9999").localeCompare(S.unit(y.unitId)?.date || "9999") || x.title.localeCompare(y.title));
+    const label = (x) => { const un = x.unitId ? S.unit(x.unitId) : null; return `${un ? `${esc(un.name)} › ` : ""}${esc(x.title)}`; };
+    return `<div class="builder-deck" role="group" aria-label="Where this card goes">
+        <label class="field field--inline"><span class="field__label">Course</span>
+          <select id="builder-course" data-change="builder-course">${courses.map((co) => `<option value="${co.id}" ${co.id === courseId ? "selected" : ""}>${esc(co.name)}${isArchived(co.id) ? " (archived)" : ""}</option>`).join("")}</select></label>
+        <label class="field field--inline"><span class="field__label">Collection</span>
+          <select id="builder-deck" data-change="builder-deck">${decks.length ? "" : `<option value="" selected>No collections yet</option>`}${decks.map((x) => `<option value="${x.id}" ${x.id === d?.id ? "selected" : ""}>${label(x)}</option>`).join("")}<option value="__new">+ New collection…</option></select></label>
+      </div>`;
+  }
   const builderKey = (deckId, noteId, query) => `${deckId || ""}|${noteId || ""}|${query?.get("course") || ""}|${query?.get("unit") || ""}`;
   function viewBuilder(deckId, query) {
     const noteId = query.get("note");
@@ -535,7 +565,7 @@
     if (!S.deck(b.deckId)) {
       const c = b.needCourse && S.course(b.needCourse), u = b.needUnit && S.unit(b.needUnit);
       if (!S.db.courses.length) return emptyState("Make a course first", "Cards live in lecture collections, inside a course.", `<button class="btn btn--primary" data-action="open-course-form">${icon("plus", 16)}New course</button>`, "book");
-      return emptyState(c ? `${c.name} has no lecture collections yet` : "Make a lecture collection first",
+      return `<header class="page-header"><div><h1 class="title">Add card</h1></div></header>${destinationPicker(null)}` + emptyState(c ? `${c.name} has no lecture collections yet` : "Make a lecture collection first",
         `Cards live in a lecture collection${u ? ` (here, inside ${u.name})` : ""}, like an Anki deck. Make one, and you’ll come right back here to add the card.`,
         `<button class="btn btn--primary" data-action="open-deck-form" ${c ? `data-course="${c.id}"` : ""} ${u ? `data-unit="${u.id}"` : ""}>${icon("plus", 16)}New lecture collection${c ? ` in ${esc(c.name)}` : ""}</button>`, "layers");
     }
@@ -553,11 +583,7 @@
           <button class="btn btn--primary" data-action="builder-save">${icon("check", 16)}${editing ? "Save changes" : "Add card"} <kbd class="kbd-inline">⌘↵</kbd></button>
         </div>
       </header>
-      <div class="builder-deck">
-        <label class="field field--inline"><span class="field__label">Collection</span>
-          <select id="builder-deck" data-change="builder-deck">${S.db.courses.filter((co) => !isArchived(co.id) || co.id === d.courseId).map((co) => { const ds = S.db.decks.filter((x) => x.courseId === co.id); return ds.length ? `<optgroup label="${esc(co.name)}${isArchived(co.id) ? " (archived)" : ""}">${ds.map((x) => { const un = x.unitId ? S.unit(x.unitId) : null; return `<option value="${x.id}" ${x.id === b.deckId ? "selected" : ""}>${un ? `${esc(un.name)} › ` : ""}${esc(x.title)}</option>`; }).join("")}</optgroup>` : ""; }).join("")}</select></label>
-        <button class="link" data-action="open-deck-form" data-course="${d.courseId}">${icon("plus", 14)}New collection</button>
-      </div>
+      ${destinationPicker(d)}
       ${editing ? "" : `<section aria-labelledby="tpl-title"><h2 id="tpl-title" class="overline section-label">Template</h2>
         <div class="template-grid template-grid--four" role="radiogroup" aria-label="Card template">${TEMPLATES.map((t) => `
           <button class="template ${b.type === t.id ? "is-selected" : ""}" role="radio" aria-checked="${b.type === t.id}" data-action="builder-template" data-value="${t.id}">
@@ -806,8 +832,9 @@
     const nextCourse = courseQueue(thisCourse)[0];
     if (!total) return `<div class="summary"><div class="summary__inner">
         <div class="summary__icon">${icon("check", 28)}</div>
-        <h1 class="title">Nothing to study in ${esc(S.scopeLabel(s.scope))} right now</h1>
-        <p class="lede">${later && nextLearn ? `${plural(later, "learning card")} ${later === 1 ? "comes" : "come"} back in ${fmtIvl(Math.max(60000, nextLearn.sched.due - Date.now()))}.` : tomorrowCount ? `${plural(tomorrowCount, "card")} ${tomorrowCount === 1 ? "is" : "are"} due tomorrow.` : "You’re up to date. New cards appear here as you add them."}</p>
+        <h1 class="title">${thisCourse && isArchived(thisCourse) ? `Reviews are paused for ${esc(S.scopeLabel(s.scope))}` : `Nothing to study in ${esc(S.scopeLabel(s.scope))} right now`}</h1>
+
+        <p class="lede">${thisCourse && isArchived(thisCourse) ? "Its semester is archived, so its reviews are paused. Restore the semester from the Library to review these cards again." : later && nextLearn ? `${plural(later, "learning card")} ${later === 1 ? "comes" : "come"} back in ${fmtIvl(Math.max(60000, nextLearn.sched.due - Date.now()))}.` : tomorrowCount ? `${plural(tomorrowCount, "card")} ${tomorrowCount === 1 ? "is" : "are"} due tomorrow.` : "You’re up to date. New cards appear here as you add them."}</p>
         <div class="stack-h stack-h--center"><a class="btn btn--primary btn--lg" href="#/home" data-action="session-done">Back to Home</a><a class="btn btn--secondary btn--lg" href="#/builder${s.scope.startsWith("deck:") ? "/" + s.scope.slice(5) : ""}">${icon("plus", 16)}Add cards</a></div>
       </div></div>`;
     return `
@@ -1548,7 +1575,7 @@
     const courseId = r.name === "course" ? r.id : deckCtx?.courseId;
     const current = S.semesterList().find((x) => !x.archived);
     $("#nav-sem-label").textContent = current ? current.name : "Courses";
-    $("#nav-courses").innerHTML = activeCourses().map((c) => `<li><a class="nav__item nav__item--sub ${c.id === courseId ? "is-active" : ""}" href="#/course/${c.id}"><span class="dot dot--${c.hue}"></span><span>${esc(c.name)}</span></a></li>`).join("");
+    $("#nav-courses").innerHTML = activeCourses().map((c) => `<li><a class="nav__item nav__item--sub ${c.id === courseId ? "is-active" : ""}" href="#/course/${c.id}" data-drop-course="${c.id}" data-drop-label="${esc(c.name)}"><span class="dot dot--${c.hue}"></span><span>${esc(c.name)}</span></a></li>`).join("");
     const due = S.counts("all").total;
     $("#nav-due").textContent = due || "";
     $$(".tabbar__badge").forEach((b) => { b.textContent = due; b.hidden = !due; });
@@ -1633,6 +1660,7 @@
       navigate(`#/collection/${d.id}`); toast(`Created ${title}`, { tone: "success", action: "Add card", onAction: () => navigate(`#/builder/${d.id}`) });
     },
     "deck-delete": (el) => { const d = S.deck(el.dataset.id); S.removeDeck(el.dataset.id); closeModal(true); navigate(`#/course/${d.courseId}`); toast(`Deleted ${d.title}`); },
+    "deck-move": (el) => { el.closest("details")?.removeAttribute("open"); moveDeck(el.dataset.id, el.dataset.course ? { course: el.dataset.course } : { unit: el.dataset.unit || "" }); },
     "open-options": (el) => { el.closest("details")?.removeAttribute("open"); openOptions(el.dataset.course); },
     "course-sug": (el) => { $("#course-name").value = el.dataset.name; if (el.dataset.code && !$("#course-code").value) $("#course-code").value = el.dataset.code; $$(".chip-btn", el.parentElement).forEach((b) => b.classList.toggle("is-picked", b === el)); $("#course-name").focus(); },
     "options-save": (el) => {
@@ -1765,7 +1793,16 @@
     if (document.body.classList.contains("is-onboarding")) return;
     const el = e.target, ch = el.dataset.change;
     if (ch === "library-sort") { state.librarySort = el.value; $("#library-results").innerHTML = libraryResults(); }
-    else if (ch === "builder-deck") { state.builder.deckId = el.value; render(); }
+    else if (ch === "builder-deck") {
+      if (el.value === "__new") { const cid = $("#builder-course")?.value; el.value = state.builder.deckId || ""; openDeckForm({ course: cid }); return; }
+      if (!el.value) return;
+      state.builder.deckId = el.value; state.builder.needCourse = null; render();
+    }
+    else if (ch === "builder-course") {
+      const cid = el.value, last = S.deck(prefs.get(lastDeckKey(), null));
+      const pick = (last?.courseId === cid && last) || S.db.decks.filter((x) => x.courseId === cid).sort((a, b) => (b.modified || 0) - (a.modified || 0))[0];
+      state.builder.deckId = pick?.id || null; state.builder.needCourse = cid; state.builder.needUnit = null; render();
+    }
     else if (ch === "quiz-opt" && state.quiz) { const k = el.dataset.key; state.quiz.opts[k] = el.type === "checkbox" ? el.checked : el.value; render(); $(`#${el.id}`)?.focus(); }
     else if (ch === "ics-file" && el.files[0]) { const f = el.files[0]; readFile(f, (t) => handleCalendarText(t, f.name)); }
     else if (ch === "imp-file" && el.files[0]) { const f = el.files[0]; readFile(f, (t) => importParsed(t, f.name)); }
@@ -1816,19 +1853,60 @@
   }
 
   /* ---------- boot -------------------------------------------------------- */
+  function cleanSamples() {
+    if (S.removeSampleContent(Object.values(window.KIVO_PERSONAS || {}))) setTimeout(() => toast("Removed the old sample cards. Your library now has only what you made."), 400);
+  }
+  /* Move a collection into an exam folder or another course, with undo. */
+  function moveDeck(id, { unit, course } = {}) {
+    const d = S.deck(id); if (!d) return;
+    const prev = { courseId: d.courseId, unitId: d.unitId || null };
+    let patch;
+    if (course && course !== d.courseId) patch = { courseId: course, unitId: null };
+    else if (unit !== undefined) { const u = unit ? S.unit(unit) : null; if (unit && (!u || u.courseId !== d.courseId)) return; if ((d.unitId || null) === (unit || null)) return; patch = { unitId: unit || null }; }
+    if (!patch) return;
+    S.update("deck", id, patch); render();
+    const where = patch.courseId ? S.course(patch.courseId)?.name : patch.unitId ? S.unit(patch.unitId)?.name : "Not in an exam";
+    toast(`Moved ${d.title} to ${where}`, { tone: "success", action: "Undo", onAction: () => { S.update("deck", id, prev); render(); } });
+  }
+  let dragId = null;
+  const deckDropTarget = (el) => el?.closest?.("[data-drop-unit], [data-drop-course]");
+  function canDrop(t) {
+    const d = S.deck(dragId); if (!d || !t) return false;
+    if (t.dataset.dropCourse !== undefined) return t.dataset.dropCourse !== d.courseId;
+    const u = t.dataset.dropUnit; return (d.unitId || "") !== u && (!u || S.unit(u)?.courseId === d.courseId);
+  }
+  function bindDrag() {
+    document.addEventListener("dragstart", (e) => {
+      const row = e.target.closest?.("[data-drag-deck]"); if (!row) return;
+      dragId = row.dataset.dragDeck; row.classList.add("is-dragging"); document.body.classList.add("is-dragging-deck");
+      e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", S.deck(dragId)?.title || "");
+    });
+    document.addEventListener("dragend", () => { dragId = null; document.body.classList.remove("is-dragging-deck"); $$(".is-dragging, .is-drop").forEach((x) => x.classList.remove("is-dragging", "is-drop")); });
+    document.addEventListener("dragover", (e) => {
+      if (!dragId) return; const t = deckDropTarget(e.target);
+      $$(".is-drop").forEach((x) => x !== t && x.classList.remove("is-drop"));
+      if (t && canDrop(t)) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; t.classList.add("is-drop"); }
+    });
+    document.addEventListener("drop", (e) => {
+      const t = deckDropTarget(e.target); if (!dragId || !t || !canDrop(t)) return;
+      e.preventDefault(); const id = dragId; dragId = null;
+      document.body.classList.remove("is-dragging-deck"); $$(".is-dragging, .is-drop").forEach((x) => x.classList.remove("is-dragging", "is-drop"));
+      if (t.dataset.dropCourse !== undefined) moveDeck(id, { course: t.dataset.dropCourse }); else moveDeck(id, { unit: t.dataset.dropUnit });
+    });
+  }
   function enterApp(acct) {
     ME = acct;
-    S.useAccount(acct); S.load(blankTemplate());
+    S.useAccount(acct); S.load(blankTemplate()); cleanSamples();
     $("#app").innerHTML = shell();
     currentRoute = "#/home"; try { history.replaceState(null, "", currentRoute); } catch { /* sandboxed */ }
     render(); window.scrollTo(0, 0);
   }
   function boot() {
     const theme = prefs.get("theme", null); if (theme) document.documentElement.dataset.theme = theme;
-    document.addEventListener("click", onClick); document.addEventListener("input", onInput); document.addEventListener("change", onChange); document.addEventListener("keydown", onKey); document.addEventListener("toggle", onToggle, true);
+    document.addEventListener("click", onClick); document.addEventListener("input", onInput); document.addEventListener("change", onChange); document.addEventListener("keydown", onKey); document.addEventListener("toggle", onToggle, true); bindDrag();
     window.addEventListener("hashchange", () => { if (!ME) return; if (/^#\//.test(location.hash) && location.hash !== currentRoute) { currentRoute = location.hash; onRouteChange(); } });
     const acct = OB.current();
-    if (acct) { ME = acct; S.useAccount(acct); S.load(blankTemplate()); $("#app").innerHTML = shell(); render(); }
+    if (acct) { ME = acct; S.useAccount(acct); S.load(blankTemplate()); cleanSamples(); $("#app").innerHTML = shell(); render(); }
     else OB.start(enterApp);
   }
   boot();

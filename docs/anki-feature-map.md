@@ -11,7 +11,7 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | Decks and subdecks (`Parent::Child`) — e.g. `Course::Exam 2::Lecture 04` | Semester → Course → Exam → Lecture collection. Each level is a "deck" you can open and study. | ✅ |
 | Study a parent deck to include its subdecks | **Study course**, **Study exam** or **Study** a single lecture collection. Never across courses: there's no mixed “study everything” and no studying a whole semester. | ✅ |
 | Deck list with New / Learn / Due counts | Study page tree with the same three counts at every level | ✅ |
-| Create, rename, delete and move decks | Create, rename and delete semesters, courses, exams and collections; move a collection by changing its course or exam | ✅ |
+| Create, rename, delete and move decks | Create, rename and delete semesters, courses, exams and collections. Drag a collection onto an exam folder (or onto a course in the sidebar) to move it, with undo; on phones use its ⋯ menu | ✅ |
 | (no equivalent) | Archive a semester to tidy the library; archiving pauses its reviews until you restore it | ✅ |
 | Tags | Tags on every note, searchable | ✅ |
 | Filtered decks (custom study by search) | Study by scope works now; study-by-tag and "review ahead" sessions | 🔜 |
@@ -28,7 +28,7 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | Image Occlusion | Built-in schematic diagram with selectable labels; one card per hidden label | ✅ |
 | Image Occlusion with your own images | Upload an image and draw boxes | 🔜 |
 | Note types and card templates in HTML/CSS | Fixed, well-designed templates with a live preview. No HTML or CSS. | ➖ by design |
-| Add dialog | **Add card**, always one click away (sidebar, collection header, keyboard `A`) | ✅ |
+| Add dialog, with deck chooser | **Add card**, always one click away (sidebar, collection header, keyboard `A`). Like Anki’s deck chooser, pick the course and then the collection, or make a new collection from the picker. It opens on the course or collection you were viewing. | ✅ |
 | Edit a note | Click any card in a collection, or press `E` during review | ✅ |
 | Duplicate check on add | Duplicate check on import (same front text in the course) | ✅ (import) · 🔜 (while typing) |
 | Media: images, audio, LaTeX/MathJax | Images arrive with image occlusion uploads; audio and equations later | 🔜 / ⏳ |

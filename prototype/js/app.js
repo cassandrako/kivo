@@ -53,7 +53,7 @@
     libraryView: prefs.get("libraryView", "grid"), libraryQuery: "", librarySort: "recent",
     browse: { q: "", filter: "all", section: "All" },
     collapsed: prefs.get("collapsed", {}),
-    session: null, builder: null, quiz: null, exams: [], calImport: null, importer: null, returnTo: null,
+    session: null, builder: null, quiz: null, calImport: null, importer: null, returnTo: null,
   };
 
   /* ---------- scopes ----------------------------------------------------- */
@@ -206,12 +206,12 @@
             ${first ? `
               <h2 id="today-title" class="hero__count"><span class="num">${all.total}</span> ${all.total === 1 ? "card" : "cards"} across ${plural(queue.length, "course")}</h2>
               <p class="hero__meta">Review one course at a time so you stay in one subject. ${first.exam ? `Start with ${esc(first.c.name)}: ${esc(first.exam.title)} is ${daysLabel(daysUntil(first.exam.date))}.` : `Start with ${esc(first.c.name)}, which has the most due.`}</p>
-              <div class="hero__actions"><a class="btn btn--primary btn--lg" href="#/study/course-${first.c.id}">${icon("play", 16)}Start ${esc(first.c.name)} · ${first.n.total}</a><a class="btn btn--ghost btn--lg" href="#/study">Pick a unit or collection</a></div>` : `
+              <div class="hero__actions"><a class="btn btn--primary btn--lg" href="#/study/course-${first.c.id}">${icon("play", 16)}Start ${esc(first.c.name)} · ${first.n.total}</a><a class="btn btn--ghost btn--lg" href="#/study">Pick an exam or lecture</a></div>` : `
               <h2 id="today-title" class="hero__count">All caught up</h2>
               <p class="hero__meta">${reviewedToday ? `You reviewed ${plural(reviewedToday, "card")} today. ` : ""}${all.learnLater ? `${plural(all.learnLater, "learning card")} will be ready again shortly.` : `${plural(tomorrow, "card")} due tomorrow.`}</p>
               <div class="hero__actions"><a class="btn btn--secondary btn--lg" href="#/builder">${icon("plus", 16)}Add cards</a><a class="btn btn--ghost btn--lg" href="#/insights">See insights</a></div>`}
           </div>
-          ${queue.length ? `<ul class="hero__sources hero__sources--courses" aria-label="Courses with cards to study">${queue.map(({ c, n, exam }) => `<li><a href="#/study/course-${c.id}"><span class="dot dot--${c.hue}"></span><span class="hero__source-name">${esc(c.name)}${exam ? `<small class="caption">${esc(exam.title)} ${daysLabel(daysUntil(exam.date))}</small>` : isArchived(c.id) ? `<small class="caption">Archived semester · keeping it fresh</small>` : ""}</span>${countPills(n, { compact: true })}<span class="hero__source-go">${icon("play", 14)}Study</span></a></li>`).join("")}</ul>` : ""}
+          ${queue.length ? `<ul class="hero__sources hero__sources--courses" aria-label="Courses with cards to study">${queue.map(({ c, n, exam }) => `<li><a href="#/study/course-${c.id}"><span class="dot dot--${c.hue}"></span><span class="hero__source-name">${esc(c.name)}${exam ? `<small class="caption">${esc(exam.title)} ${daysLabel(daysUntil(exam.date))}</small>` : ""}</span>${countPills(n, { compact: true })}<span class="hero__source-go">${icon("play", 14)}Study</span></a></li>`).join("")}</ul>` : ""}
         </section>
         <section class="card exams" aria-labelledby="exams-title">
           <div class="card__head"><h2 id="exams-title" class="heading">Upcoming exams</h2><a class="link" href="#/exams">Manage</a></div>
@@ -237,7 +237,7 @@
         <a class="collection-card__link" href="#/collection/${d.id}" aria-label="${esc(d.title)}, ${esc(c?.name)}"></a>
         <div class="collection-card__top"><span class="chip chip--${c?.hue || "neutral"}">${esc(c?.name)}</span>${dueBadge(n)}</div>
         <h3 class="subhead">${esc(d.title)}</h3>
-        <p class="caption">${esc([d.lecture, u?.name].filter(Boolean).join(" · ") || "No unit")}</p>
+        <p class="caption">${esc([d.lecture, u?.name].filter(Boolean).join(" · ") || "Not in an exam yet")}</p>
         <div class="collection-card__foot"><span class="caption">${plural(st.total, "card")}</span><span class="caption">${esc(relTime(S.lastStudied([d.id])))}</span></div>
       </article>`;
   }
@@ -271,7 +271,7 @@
   function coursesHtml(rows, { addTo = undefined } = {}) {
     if (state.libraryView === "list") return `
       <div class="table-wrap card"><table class="table">
-        <thead><tr><th scope="col">Course</th><th scope="col">Collections</th><th scope="col">Cards</th><th scope="col">To study</th><th scope="col">Next exam</th><th scope="col">Last studied</th></tr></thead>
+        <thead><tr><th scope="col">Course</th><th scope="col">Lectures</th><th scope="col">Cards</th><th scope="col">To study</th><th scope="col">Next exam</th><th scope="col">Last studied</th></tr></thead>
         <tbody>${rows.map(({ c, st, n, last, decks }) => `<tr data-href="#/course/${c.id}" tabindex="0"><th scope="row"><span class="dot dot--${c.hue}"></span><a href="#/course/${c.id}">${esc(c.name)}</a><small>${esc(c.code || "")}</small></th><td>${decks}</td><td>${st.total}</td><td>${countPills(n, { compact: true })}</td><td>${esc(nextExamLabel(c.id))}</td><td>${esc(relTime(last))}</td></tr>`).join("") || `<tr><td colspan="6" class="caption">No courses yet.</td></tr>`}</tbody>
       </table></div>`;
     return `<div class="course-grid">${rows.map(({ c, st, n, last, decks }) => `
@@ -280,7 +280,7 @@
         <div class="course-card__band course-card__band--${c.hue}"><span class="course-card__code">${esc(c.code || "")}</span></div>
         <div class="course-card__body">
           <h3 class="subhead">${esc(c.name)}</h3>
-          <p class="caption">${plural(decks, "collection")} · ${plural(st.total, "card")}</p>
+          <p class="caption">${plural(decks, "lecture")} · ${plural(st.total, "card")}</p>
           <div class="course-card__status">${dueBadge(n)}${st.new ? `<span class="badge badge--neutral">${st.new} new</span>` : ""}</div>
           <div class="course-card__foot"><span class="caption">${icon("calendar", 12)} ${esc(nextExamLabel(c.id))}</span><span class="caption">${esc(relTime(last))}</span></div>
         </div>
@@ -296,15 +296,14 @@
     const items = sem ? [
       { label: "Add course", icon: "plus", action: "open-course-form", data: { semester: sem.id } },
       { label: "Rename semester", icon: "edit", action: "open-semester-form", data: { id: sem.id } },
-      sem.archived ? { label: "Move back to active", icon: "refresh", action: "semester-archive", data: { id: sem.id } } : { label: "Archive semester", icon: "folder", action: "semester-archive", data: { id: sem.id } },
-      { label: sem.pauseReviews ? "Resume reviews" : "Pause reviews", icon: sem.pauseReviews ? "play" : "pause", action: "semester-pause", data: { id: sem.id } },
+      sem.archived ? { label: "Restore semester", icon: "refresh", action: "semester-archive", data: { id: sem.id } } : { label: "Archive semester", icon: "folder", action: "semester-archive", data: { id: sem.id } },
       "-", { label: "Delete semester", icon: "trash", action: "open-semester-form", data: { id: sem.id, del: 1 }, danger: true },
     ] : [];
     return `<section class="semester ${sem?.archived ? "is-archived" : ""}" aria-labelledby="sem-${sem?.id || "none"}">
       <header class="semester__head">
         <div class="semester__title"><span class="unit__icon">${icon("folder", 18)}</span><h2 id="sem-${sem?.id || "none"}" class="heading">${esc(sem ? sem.name : "Not in a semester")}</h2>
-          <span class="caption">${plural(rows.length, "course")}</span>${sem?.pauseReviews ? `<span class="badge badge--neutral">${icon("pause", 12)}Reviews paused</span>` : ""}</div>
-        ${sem ? `<div class="unit__actions">${n.total && !sem.pauseReviews ? `<span class="caption">${plural(n.total, "card")} to study</span>` : ""}${menu("sem-" + sem.id, items)}</div>` : ""}
+          <span class="caption">${plural(rows.length, "course")}</span>${sem?.archived ? `<span class="badge badge--neutral">${icon("pause", 12)}Reviews paused</span>` : ""}</div>
+        ${sem ? `<div class="unit__actions">${n.total && !sem.archived ? `<span class="caption">${plural(n.total, "card")} to study</span>` : ""}${menu("sem-" + sem.id, items)}</div>` : ""}
       </header>
       ${rows.length || sem ? coursesHtml(rows, { addTo: sem && !sem.archived ? sem.id : undefined }) : ""}
     </section>`;
@@ -324,7 +323,7 @@
     const sems = S.semesterList(), active = sems.filter((x) => !x.archived), archived = sems.filter((x) => x.archived);
     return `${active.map(semesterBlock).join("")}${semesterBlock(null)}
       ${archived.length ? `<details class="archive" ${state.collapsed.__archive ? "open" : ""} data-archive>
-        <summary><span class="unit__icon">${icon("folder", 18)}</span><span class="heading">Archived</span><span class="caption">${plural(archived.length, "semester")} · ${plural(archived.reduce((n, x) => n + S.coursesIn(x.id).length, 0), "course")} · their cards still come up for review unless paused</span>${icon("chevronDown", 16, "archive__chev")}</summary>
+        <summary><span class="unit__icon">${icon("folder", 18)}</span><span class="heading">Archived</span><span class="caption">${plural(archived.length, "semester")} · ${plural(archived.reduce((n, x) => n + S.coursesIn(x.id).length, 0), "course")} · reviews are paused while archived</span>${icon("chevronDown", 16, "archive__chev")}</summary>
         <div class="archive__body">${archived.map(semesterBlock).join("")}</div></details>` : ""}`;
   }
 
@@ -344,31 +343,31 @@
       const decks = S.decksOf(id, u.id), n = S.counts("unit:" + u.id);
       return `<section class="unit card" aria-labelledby="unit-${u.id}">
         <header class="unit__head">
-          <div class="unit__title"><span class="unit__icon">${icon("folder", 18)}</span><h2 id="unit-${u.id}" class="subhead">${esc(u.name)}</h2><span class="caption">${plural(decks.length, "collection")}</span></div>
+          <div class="unit__title"><span class="unit__icon">${icon("calendar", 18)}</span><h2 id="unit-${u.id}" class="subhead">${esc(u.name)}</h2><span class="caption">${u.date ? `${esc(fmtDate(u.date))} · ${daysUntil(u.date) >= 0 ? daysLabel(daysUntil(u.date)) : "done"}` : `<button class="link" data-action="open-exam-form" data-id="${u.id}">Add date</button>`} · ${plural(decks.length, "lecture")}</span></div>
           <div class="unit__actions">${countPills(n)}
-            <a class="btn btn--primary btn--sm ${n.total ? "" : "is-quiet"}" href="#/study/unit-${u.id}">${icon("play", 14)}Study unit</a>
-            ${menu("unit-" + u.id, [{ label: "Add collection", icon: "plus", action: "open-deck-form", data: { course: id, unit: u.id } }, { label: "Practice quiz on unit", icon: "target", action: "go", data: { href: `#/quiz/unit-${u.id}` } }, { label: "Rename unit", icon: "edit", action: "open-unit-form", data: { id: u.id } }, "-", { label: "Delete unit", icon: "trash", action: "open-unit-form", data: { id: u.id, del: 1 }, danger: true }])}
+            <a class="btn btn--primary btn--sm ${n.total ? "" : "is-quiet"}" href="#/study/unit-${u.id}">${icon("play", 14)}Study exam</a>
+            ${menu("unit-" + u.id, [{ label: "Add lecture collection", icon: "plus", action: "open-deck-form", data: { course: id, unit: u.id } }, { label: "Practice quiz on this exam", icon: "target", action: "go", data: { href: `#/quiz/unit-${u.id}` } }, { label: "Edit exam", icon: "edit", action: "open-exam-form", data: { id: u.id } }, "-", { label: "Delete exam", icon: "trash", action: "open-unit-form", data: { id: u.id, del: 1 }, danger: true }])}
           </div>
         </header>
-        ${decks.length ? `<ul class="deck-list">${decks.map(deckRow).join("")}</ul>` : `<div class="unit__empty"><p class="caption">No collections in this unit yet.</p><button class="btn btn--secondary btn--sm" data-action="open-deck-form" data-course="${id}" data-unit="${u.id}">${icon("plus", 14)}Add collection</button></div>`}
+        ${decks.length ? `<ul class="deck-list">${decks.map(deckRow).join("")}</ul>` : `<div class="unit__empty"><p class="caption">No lectures in this exam yet.</p><button class="btn btn--secondary btn--sm" data-action="open-deck-form" data-course="${id}" data-unit="${u.id}">${icon("plus", 14)}Add lecture collection</button></div>`}
       </section>`;
     };
     return `
       ${breadcrumb([...courseCrumbs(c), { label: c.name }])}
       <header class="page-header">
         <div><p class="overline">${esc([c.code, c.term].filter(Boolean).join(" · "))}${isArchived(id) ? " · Archived" : ""}</p><h1 class="title">${esc(c.name)}</h1>
-          <p class="lede">${plural(units.length, "unit")} · ${plural(S.scopeDeckIds("course:" + id).length, "collection")} · ${plural(st.total, "card")} · Next: ${esc(nextExamLabel(id))}</p></div>
+          <p class="lede">${plural(units.length, "exam")} · ${plural(S.scopeDeckIds("course:" + id).length, "lecture")} · ${plural(st.total, "card")} · Next: ${esc(nextExamLabel(id))}</p></div>
         <div class="page-header__actions">
-          <button class="btn btn--ghost" data-action="open-unit-form" data-course="${id}">${icon("folder", 16)}New unit</button>
-          <button class="btn btn--secondary" data-action="open-deck-form" data-course="${id}">${icon("plus", 16)}New collection</button>
+          <button class="btn btn--ghost" data-action="open-exam-form" data-course="${id}">${icon("calendar", 16)}New exam</button>
+          <button class="btn btn--secondary" data-action="open-deck-form" data-course="${id}">${icon("plus", 16)}New lecture</button>
           <a class="btn btn--primary ${all.total ? "" : "is-quiet"}" href="#/study/course-${id}">${icon("play", 16)}Study course${all.total ? ` · ${all.total}` : ""}</a>
           ${menu("course-" + id, [{ label: "Edit course", icon: "edit", action: "open-course-form", data: { id } }, { label: "Review settings", icon: "settings", action: "open-options", data: { course: id } }, { label: "Practice quiz on course", icon: "target", action: "go", data: { href: `#/quiz/course-${id}` } }, "-", { label: "Delete course", icon: "trash", action: "open-course-form", data: { id, del: 1 }, danger: true }])}
         </div>
       </header>
       <div class="course-body">
         ${units.map(unitBlock).join("")}
-        ${loose.length ? `<section class="unit card"><header class="unit__head"><div class="unit__title"><span class="unit__icon">${icon("layers", 18)}</span><h2 class="subhead">Not in a unit</h2></div></header><ul class="deck-list">${loose.map(deckRow).join("")}</ul></section>` : ""}
-        ${!units.length && !loose.length ? emptyState("This course is empty", "Organize it the way your program does: add units (like “Unit 2 · Neuroanatomy”), then a collection for each lecture.", `<div class="stack-h stack-h--center"><button class="btn btn--secondary" data-action="open-unit-form" data-course="${id}">${icon("folder", 16)}New unit</button><button class="btn btn--primary" data-action="open-deck-form" data-course="${id}">${icon("plus", 16)}New collection</button></div>`, "folder") : ""}
+        ${loose.length ? `<section class="unit card"><header class="unit__head"><div class="unit__title"><span class="unit__icon">${icon("layers", 18)}</span><h2 class="subhead">Not in an exam yet</h2></div></header><ul class="deck-list">${loose.map(deckRow).join("")}</ul></section>` : ""}
+        ${!units.length && !loose.length ? emptyState("This course is empty", "Add an exam (like “Exam 1”), then a collection for each lecture on it.", `<div class="stack-h stack-h--center"><button class="btn btn--secondary" data-action="open-exam-form" data-course="${id}">${icon("calendar", 16)}New exam</button><button class="btn btn--primary" data-action="open-deck-form" data-course="${id}">${icon("plus", 16)}New lecture</button></div>`, "folder") : ""}
       </div>`;
   }
 
@@ -410,7 +409,7 @@
             <h2 id="details-title" class="overline">Details</h2>
             <dl class="dl">
               <div><dt>Course</dt><dd><a class="link" href="#/course/${c.id}">${esc(c.name)}</a></dd></div>
-              <div><dt>Unit</dt><dd>${esc(u?.name || "Not in a unit")}</dd></div>
+              <div><dt>Exam</dt><dd>${esc(u ? `${u.name}${u.date ? ` · ${fmtDate(u.date)}` : ""}` : "Not in an exam yet")}</dd></div>
               ${d.lecture ? `<div><dt>Lecture</dt><dd>${esc(d.lecture)}</dd></div>` : ""}
               ${d.topic ? `<div><dt>Topic</dt><dd>${esc(d.topic)}</dd></div>` : ""}
               <div><dt>Cards</dt><dd>${st.total} · ${st.new} new · ${st.learning} learning · ${st.review} review${st.suspended ? ` · ${st.suspended} suspended` : ""}</dd></div>
@@ -435,7 +434,6 @@
     const b = state.browse;
     const cards = S.db.cards.filter((c) => c.deckId === deckId);
     const notesById = new Map(S.db.notes.map((n) => [n.id, n]));
-    const sections = [...new Set(cards.map((c) => notesById.get(c.noteId)?.section).filter(Boolean))];
     const filters = {
       all: () => true, due: (c) => !c.suspended && c.sched.state !== "new" && c.sched.due <= S.endOfDay(),
       new: (c) => c.sched.state === "new", learning: (c) => c.sched.state === "learning" || c.sched.state === "relearning",
@@ -446,7 +444,6 @@
     const rows = cards.filter((c) => {
       const n = notesById.get(c.noteId);
       if (!filters[b.filter](c)) return false;
-      if (b.section !== "All" && n.section !== b.section) return false;
       return !q || strip([...Object.values(n.fields).flat(), ...(n.tags || [])].join(" ")).toLowerCase().includes(q);
     });
     if (!cards.length) return emptyState("No cards yet", "Add your first card. Pick a template, type the question and answer, and you’re done.", `<a class="btn btn--primary" href="#/builder/${deckId}">${icon("plus", 16)}Add card</a>`, "study");
@@ -456,7 +453,6 @@
         <label class="search search--sm">${icon("search", 14)}<span class="sr-only">Search cards</span><input type="search" id="browse-search" placeholder="Search cards and tags" value="${esc(b.q)}" data-input="browse-q" autocomplete="off"></label>
         <div class="filter-chips" role="group" aria-label="Filter cards">${[["all", "All"], ["due", "Due"], ["new", "New"], ["learning", "Learning"], ["review", "Review"], ["suspended", "Suspended"], ["flagged", "Flagged"], ["leech", "Leeches"]].filter(([k]) => k === "all" || fc(k)).map(([k, l]) => `<button class="tab ${b.filter === k ? "is-active" : ""}" aria-pressed="${b.filter === k}" data-action="browse-filter" data-value="${k}">${l} <span>${fc(k)}</span></button>`).join("")}</div>
       </div>
-      ${sections.length > 1 ? `<div class="section-tabs" role="group" aria-label="Sections">${["All", ...sections].map((s) => `<button class="tab tab--ghost ${b.section === s ? "is-active" : ""}" aria-pressed="${b.section === s}" data-action="browse-section" data-value="${esc(s)}">${esc(s)}</button>`).join("")}</div>` : ""}
       <ul class="card-list">${rows.length ? rows.map((c) => {
         const n = notesById.get(c.noteId), f = cardFaces(c, n), due = dueLabel(c);
         return `<li class="card-row ${c.suspended ? "is-suspended" : ""}">
@@ -497,7 +493,6 @@
     const editing = !!b.noteId, n = editing ? S.note(b.noteId) : null;
     if (editing && !n) return viewNotFound();
     const cards = editing ? S.db.cards.filter((x) => x.noteId === b.noteId) : [];
-    const sections = [...new Set(S.db.notes.filter((x) => x.deckId === b.deckId).map((x) => x.section).filter(Boolean))];
     return `
       ${breadcrumb([...courseCrumbs(c), { label: c.name, href: `#/course/${c.id}` }, { label: d.title, href: `#/collection/${d.id}` }, { label: editing ? "Edit card" : "Add card" }])}
       <header class="page-header">
@@ -523,12 +518,9 @@
           <div id="builder-fields">${builderFields()}</div>
           <p class="field__error" id="form-error" role="alert" hidden></p>
           <div class="disclosure ${b.advanced ? "is-open" : ""}">
-            <button class="disclosure__btn" aria-expanded="${b.advanced}" aria-controls="adv-panel" data-action="builder-advanced">${icon("settings", 16)}<span>Tags and section</span><small>Optional</small>${icon("chevronDown", 16, "disclosure__chev")}</button>
+            <button class="disclosure__btn" aria-expanded="${b.advanced}" aria-controls="adv-panel" data-action="builder-advanced">${icon("settings", 16)}<span>Tags</span><small>Optional</small>${icon("chevronDown", 16, "disclosure__chev")}</button>
             <div id="adv-panel" class="disclosure__panel" ${b.advanced ? "" : "hidden"}>
-              <div class="field-row">
-                <label class="field"><span class="field__label">Section</span><input id="b-section" list="section-list" value="${esc(b.section)}" data-input="builder-meta" data-key="section" placeholder="e.g. Oculomotor (CN III)"><datalist id="section-list">${sections.map((s) => `<option value="${esc(s)}">`).join("")}</datalist><span class="field__hint">Groups cards inside the collection.</span></label>
-                <label class="field"><span class="field__label">Tags</span><input id="b-tags" value="${esc(b.tags)}" data-input="builder-meta" data-key="tags" placeholder="high-yield, clinical"><span class="field__hint">Separate with commas.</span></label>
-              </div>
+              <label class="field"><span class="field__label">Tags</span><input id="b-tags" value="${esc(b.tags)}" data-input="builder-meta" data-key="tags" placeholder="high-yield, clinical"><span class="field__hint">Separate with commas. Use tags to group cards inside a lecture if you want to.</span></label>
             </div>
           </div>
           ${editing ? `<div class="note-info">
@@ -633,23 +625,23 @@
       let html = row("course", c.name, "course:" + c.id, `${"<span class='tree__indent'></span>".repeat(depth)}${toggle(c.id, c.name, open)}<span class="dot dot--${c.hue}"></span>`, `#/course/${c.id}`);
       if (!open) return html;
       for (const u of S.unitsOf(c.id)) {
-        html += row("unit", u.name, "unit:" + u.id, `${"<span class='tree__indent'></span>".repeat(depth + 1)}${icon("folder", 15)}`);
+        html += row("unit", u.name, "unit:" + u.id, `${"<span class='tree__indent'></span>".repeat(depth + 1)}${icon("calendar", 15)}`, null, u.date && daysUntil(u.date) >= 0 ? ` <span class="caption">${daysLabel(daysUntil(u.date))}</span>` : "");
         for (const d of S.decksOf(c.id, u.id)) html += row("deck", d.title, "deck:" + d.id, "<span class='tree__indent'></span>".repeat(depth + 2), `#/collection/${d.id}`);
       }
       for (const d of S.decksOf(c.id, null)) html += row("deck", d.title, "deck:" + d.id, "<span class='tree__indent'></span>".repeat(depth + 1), `#/collection/${d.id}`);
       return html;
     };
-    const sems = S.semesterList().filter((x) => !x.pauseReviews);
+    const sems = S.semesterList().filter((x) => !x.archived);
     const semRows = (sem) => {
       const key = "sem-" + sem.id, open = state.collapsed[key] === undefined ? !sem.archived : !state.collapsed[key];
-      let html = row("sem", sem.name, "semester:" + sem.id, toggle(key, sem.name, open), null, sem.archived ? ` <span class="badge badge--neutral">Archived</span>` : "");
+      let html = row("sem", sem.name, "semester:" + sem.id, toggle(key, sem.name, open), null, "");
       if (open) for (const c of S.coursesIn(sem.id)) html += courseRows(c, 1);
       return html;
     };
     const tree = sems.map(semRows).join("") + S.coursesIn(null).map((c) => courseRows(c, 0)).join("");
-    const pausedN = S.semesterList().filter((x) => x.pauseReviews).length;
+    const pausedN = S.semesterList().filter((x) => x.archived).length;
     return `
-      <header class="page-header"><div><h1 class="title">Study</h1><p class="lede">Reviews happen one course at a time. Study a whole course, one unit, or a single collection.</p></div></header>
+      <header class="page-header"><div><h1 class="title">Study</h1><p class="lede">Reviews happen one course at a time. Study a whole course, one exam, or a single lecture.</p></div></header>
       <section class="card hero hero--compact"><div class="hero__main">
         <p class="overline">Due today</p>
         <h2 class="hero__count">${all.total ? `<span class="num">${all.total}</span> ${all.total === 1 ? "card" : "cards"} across ${plural(courseQueue().length, "course")}` : "All caught up"}</h2>
@@ -657,9 +649,9 @@
         <div class="hero__actions"><a class="btn btn--primary btn--lg" href="#/study/course-${courseQueue()[0].c.id}">${icon("play", 16)}Start ${esc(courseQueue()[0].c.name)}</a></div>` : ""}
       </div></section>
       ${S.db.courses.length ? `<div class="table-wrap card tree-wrap"><table class="table tree">
-        <thead><tr><th scope="col">Course › Unit › Collection</th><th scope="col" class="cnt-col cnt-col--new">New</th><th scope="col" class="cnt-col cnt-col--learn">Learn</th><th scope="col" class="cnt-col cnt-col--review">Due</th><th scope="col"><span class="sr-only">Study</span></th></tr></thead>
+        <thead><tr><th scope="col">Course › Exam › Lecture</th><th scope="col" class="cnt-col cnt-col--new">New</th><th scope="col" class="cnt-col cnt-col--learn">Learn</th><th scope="col" class="cnt-col cnt-col--review">Due</th><th scope="col"><span class="sr-only">Study</span></th></tr></thead>
         <tbody>${tree}</tbody></table></div>` : emptyState("Nothing to study yet", "Create a course and add cards to it first.", `<button class="btn btn--primary" data-action="open-course-form">New course</button>`, "study")}
-      ${prototypeNote(`Counts follow each course’s daily limits (default 20 new and 200 reviews a day), set in a course’s Review settings.${pausedN ? ` ${plural(pausedN, "semester")} with paused reviews ${pausedN === 1 ? "is" : "are"} hidden.` : ""}`)}`;
+      ${prototypeNote(`Counts follow each course’s daily limits (default 20 new and 200 reviews a day), set in a course’s Review settings.${pausedN ? ` ${plural(pausedN, "archived semester")} ${pausedN === 1 ? "is" : "are"} paused and hidden; restore one from the Library to study it.` : ""}`)}`;
   }
 
   function startSession(param) {
@@ -694,7 +686,7 @@
         <main class="session__stage">
           <article class="flashcard flashcard--study ${s.revealed ? "is-revealed" : ""}" aria-live="polite">
             <div class="flashcard__meta">
-              <span class="caption">${esc(d.title)}${n.section ? ` · ${esc(n.section)}` : ""}${c.sched.state === "new" ? ` · <span class="tag tag--new">New</span>` : c.sched.state === "relearning" ? ` · <span class="tag tag--learn">Relearning</span>` : ""}</span>
+              <span class="caption">${esc([d.lecture, d.title].filter(Boolean).join(" · "))}${c.sched.state === "new" ? ` · <span class="tag tag--new">New</span>` : c.sched.state === "relearning" ? ` · <span class="tag tag--learn">Relearning</span>` : ""}</span>
               <span class="flashcard__tools">
                 <button class="icon-btn icon-btn--sm" data-action="session-edit" aria-label="Edit this card" title="Edit (E)">${icon("edit", 16)}</button>
                 <button class="icon-btn icon-btn--sm ${c.flag ? "is-on" : ""}" data-action="session-flag" aria-pressed="${!!c.flag}" aria-label="Flag card" title="Flag (F)">${icon("flag", 16)}</button>
@@ -753,7 +745,7 @@
     const total = s.answered.length, unique = new Set(s.answered.map((a) => a.cardId)).size;
     const minutes = Math.max(1, Math.round((Date.now() - s.startedAt) / 60000));
     const weak = {};
-    s.answered.filter((a) => a.grade <= 2).forEach((a) => { const c = S.card(a.cardId); if (!c) return; const k = S.note(c.noteId).section || S.deck(c.deckId).title; weak[k] = (weak[k] || 0) + 1; });
+    s.answered.filter((a) => a.grade <= 2).forEach((a) => { const c = S.card(a.cardId); if (!c) return; const dk = S.deck(c.deckId); const k = [dk.lecture, dk.title].filter(Boolean).join(" · "); weak[k] = (weak[k] || 0) + 1; });
     const ids = new Set(S.scopeDeckIds(s.scope));
     const later = S.counts(s.scope).learnLater;
     const nextLearn = S.db.cards.filter((c) => ids.has(c.deckId) && (c.sched.state === "learning" || c.sched.state === "relearning") && !c.suspended).sort((a, b) => a.sched.due - b.sched.due)[0];
@@ -908,15 +900,14 @@
      EXAMS
      ====================================================================== */
   const EXAM_KINDS = ["Exam", "Quiz", "Midterm", "Final", "Practical", "OSCE"];
-  function loadExams() {
-    const saved = prefs.get("exams:v3", null);
-    if (Array.isArray(saved)) return saved;
-    return SEED.exams.map(({ offset, ...e }) => ({ ...e, date: isoDate(new Date(TODAY + offset * DAY)) }));
-  }
-  const saveExams = () => prefs.set("exams:v3", state.exams);
+  /* An exam is a folder inside a course. Its collections (one per lecture)
+     are the material it covers; its date drives countdowns. */
+  const examOf = (u) => ({ id: u.id, title: u.name, kind: u.kind || "Exam", courseId: u.courseId, date: u.date || "", time: u.time || "", source: u.source || "manual", collections: S.decksOf(u.courseId, u.id).map((d) => d.id) });
+  const examsList = () => S.db.units.filter((u) => S.course(u.courseId)).map(examOf);
   const byDate = (a, b) => a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || "");
-  const upcomingExams = () => state.exams.filter((e) => daysUntil(e.date) >= 0 && S.course(e.courseId)).sort(byDate);
-  const pastExams = () => state.exams.filter((e) => daysUntil(e.date) < 0).sort((a, b) => byDate(b, a));
+  const upcomingExams = () => examsList().filter((e) => e.date && daysUntil(e.date) >= 0 && !S.paused(e.courseId)).sort(byDate);
+  const pastExams = () => examsList().filter((e) => e.date && daysUntil(e.date) < 0).sort((a, b) => byDate(b, a));
+  const undatedExams = () => examsList().filter((e) => !e.date && !S.paused(e.courseId));
   function examCoverage(e) {
     const cols = (e.collections || []).map(S.deck).filter(Boolean);
     const st = S.deckStats(cols.map((c) => c.id));
@@ -924,64 +915,65 @@
   }
   function nextExamLabel(courseId) { const e = upcomingExams().find((x) => x.courseId === courseId); return e ? `${e.title} · ${fmtDate(e.date, { month: "short", day: "numeric" })}` : "No exam scheduled"; }
   function viewExams() {
-    const up = upcomingExams(), past = pastExams();
+    const up = upcomingExams(), past = pastExams(), undated = undatedExams();
     return `
-      <header class="page-header"><div><h1 class="title">Exams</h1><p class="lede">Your quizzes, exams and practicals. Link each one to the collections it covers to see how much of that material you’ve studied.</p></div>
-        <div class="page-header__actions"><button class="btn btn--secondary" data-action="open-calendar-import">${icon("upload", 16)}Import from calendar</button><button class="btn btn--primary" data-action="open-exam-form">${icon("plus", 16)}Add exam</button></div></header>
+      <header class="page-header"><div><h1 class="title">Exams</h1><p class="lede">Every exam is a folder in its course, holding a collection for each lecture it covers. Add the date to get a countdown and see how much you’ve studied.</p></div>
+        <div class="page-header__actions"><button class="btn btn--secondary" data-action="open-calendar-import">${icon("upload", 16)}Import from calendar</button><button class="btn btn--primary" data-action="open-exam-form">${icon("plus", 16)}New exam</button></div></header>
       ${up.length ? `<h2 class="overline section-label">Upcoming · ${up.length}</h2><ul class="exam-cards">${up.map(examCard).join("")}</ul>`
-        : `<div class="card exams-empty exams-empty--page">${icon("calendar", 22)}<h2 class="subhead">No upcoming exams</h2><p class="caption">Add an exam yourself, or import your schedule from a Canvas or Google Calendar export.</p><div class="stack-h"><button class="btn btn--primary" data-action="open-exam-form">${icon("plus", 16)}Add exam</button><button class="btn btn--secondary" data-action="open-calendar-import">${icon("upload", 16)}Import from calendar</button></div></div>`}
+        : `<div class="card exams-empty exams-empty--page">${icon("calendar", 22)}<h2 class="subhead">No upcoming exams</h2><p class="caption">Add an exam yourself, or import your schedule from a Canvas or Google Calendar export.</p><div class="stack-h"><button class="btn btn--primary" data-action="open-exam-form">${icon("plus", 16)}New exam</button><button class="btn btn--secondary" data-action="open-calendar-import">${icon("upload", 16)}Import from calendar</button></div></div>`}
+      ${undated.length ? `<h2 class="overline section-label">No date yet · ${undated.length}</h2><ul class="exam-cards">${undated.map(examCard).join("")}</ul>` : ""}
       ${past.length ? `<details class="past-exams"><summary class="overline">Past · ${past.length}</summary><ul class="exam-cards">${past.map(examCard).join("")}</ul></details>` : ""}
       ${prototypeNote("Calendar import reads a .ics file you export from Canvas or Google Calendar. Automatic syncing needs sign-in to those services and comes with accounts.")}`;
   }
   function examCard(e) {
-    const c = S.course(e.courseId), n = daysUntil(e.date), cov = examCoverage(e);
-    const when = n < 0 ? `${-n} ${-n === 1 ? "day" : "days"} ago` : n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`;
-    const studyHref = cov && cov.cols.length === 1 ? `#/study/${cov.cols[0].id}` : cov ? `#/study/course-${e.courseId}` : null;
-    return `<li class="card exam-card ${n < 0 ? "is-past" : ""} ${n >= 0 && n <= 7 ? "is-soon" : ""}">
-      <div class="exam-card__date" aria-hidden="true"><span class="exam-card__month">${fmtDate(e.date, { month: "short" })}</span><span class="exam-card__day">${parseISO(e.date).getDate()}</span><span class="exam-card__dow">${fmtDate(e.date, { weekday: "short" })}</span></div>
+    const c = S.course(e.courseId), n = e.date ? daysUntil(e.date) : null, cov = examCoverage(e);
+    const when = n == null ? "No date yet" : n < 0 ? `${-n} ${-n === 1 ? "day" : "days"} ago` : n === 0 ? "Today" : n === 1 ? "Tomorrow" : `In ${n} days`;
+    return `<li class="card exam-card ${n != null && n < 0 ? "is-past" : ""} ${n != null && n >= 0 && n <= 7 ? "is-soon" : ""}">
+      <div class="exam-card__date" aria-hidden="true">${e.date ? `<span class="exam-card__month">${fmtDate(e.date, { month: "short" })}</span><span class="exam-card__day">${parseISO(e.date).getDate()}</span><span class="exam-card__dow">${fmtDate(e.date, { weekday: "short" })}</span>` : `${icon("calendar", 20)}`}</div>
       <div class="exam-card__body">
-        <div class="exam-card__top"><span class="chip chip--${c?.hue || "neutral"}">${esc(c?.name || "Course removed")}</span><span class="badge badge--neutral">${esc(e.kind)}</span>${e.source === "calendar" ? `<span class="badge badge--sage">${icon("calendar", 12)}From calendar</span>` : ""}</div>
+        <div class="exam-card__top"><a class="chip chip--${c?.hue || "neutral"}" href="#/course/${e.courseId}">${esc(c?.name || "")}</a><span class="badge badge--neutral">${esc(e.kind)}</span>${e.source === "calendar" ? `<span class="badge badge--sage">${icon("calendar", 12)}From calendar</span>` : ""}</div>
         <h3 class="subhead">${esc(e.title)}</h3>
-        <p class="caption"><strong class="exam-card__when">${when}</strong> · ${fmtDate(e.date, { weekday: "long", month: "long", day: "numeric" })}${e.time ? ` · ${fmtTime(e.time)}` : ""}</p>
-        ${cov ? `<div class="exam-card__cov"><p class="caption">${pct(cov.ratio)} of ${cov.cards} cards studied at least once</p>${progressBar(cov.ratio, `${e.title} coverage`)}<div class="tag-row">${cov.cols.map((x) => `<a class="tag tag--link" href="#/collection/${x.id}">${esc(x.title)}</a>`).join("")}</div></div>`
-          : `<p class="caption">No collections linked. <button class="link" data-action="open-exam-form" data-id="${e.id}">Link collections</button> to track coverage.</p>`}
+        <p class="caption"><strong class="exam-card__when">${when}</strong>${e.date ? ` · ${fmtDate(e.date, { weekday: "long", month: "long", day: "numeric" })}${e.time ? ` · ${fmtTime(e.time)}` : ""}` : ` · <button class="link" data-action="open-exam-form" data-id="${e.id}">Add the date</button>`}</p>
+        ${cov ? `<div class="exam-card__cov"><p class="caption">${plural(cov.cols.length, "lecture")} · ${pct(cov.ratio)} of ${cov.cards} cards studied at least once</p>${progressBar(cov.ratio, `${e.title} coverage`)}<div class="tag-row">${cov.cols.map((x) => `<a class="tag tag--link" href="#/collection/${x.id}">${esc(x.lecture ? `${x.lecture} · ${x.title}` : x.title)}</a>`).join("")}</div></div>`
+          : `<p class="caption">No lectures in this exam yet. <button class="link" data-action="open-deck-form" data-course="${e.courseId}" data-unit="${e.id}">Add a lecture collection</button></p>`}
       </div>
-      <div class="exam-card__actions">${n >= 0 && studyHref ? `<a class="btn btn--primary btn--sm" href="${studyHref}">${icon("play", 14)}Review</a>` : ""}<button class="btn btn--ghost btn--sm" data-action="open-exam-form" data-id="${e.id}" aria-label="Edit ${esc(e.title)}">${icon("edit", 14)}Edit</button></div>
+      <div class="exam-card__actions">${(n == null || n >= 0) && cov ? `<a class="btn btn--primary btn--sm" href="#/study/unit-${e.id}">${icon("play", 14)}Study exam</a>` : ""}<button class="btn btn--ghost btn--sm" data-action="open-exam-form" data-id="${e.id}" aria-label="Edit ${esc(e.title)}">${icon("edit", 14)}Edit</button></div>
     </li>`;
   }
-  function examColsHtml(courseId, selected) {
+  function examColsHtml(courseId, examId) {
     const cols = S.db.decks.filter((c) => c.courseId === courseId);
-    if (!cols.length) return `<p class="caption">This course has no collections yet.</p>`;
-    return `<div class="check-list">${cols.map((c) => `<label class="check-row"><input type="checkbox" name="exam-col" value="${c.id}" ${selected.includes(c.id) ? "checked" : ""}><span><strong>${esc(c.title)}</strong><small>${esc([c.unitId ? S.unit(c.unitId)?.name : "", plural(S.deckStats([c.id]).total, "card")].filter(Boolean).join(" · "))}</small></span></label>`).join("")}</div>`;
+    if (!cols.length) return `<p class="caption">This course has no lecture collections yet. Create the exam, then add a collection for each lecture.</p>`;
+    return `<div class="check-list">${cols.map((c) => { const other = c.unitId && c.unitId !== examId ? S.unit(c.unitId) : null; return `<label class="check-row"><input type="checkbox" name="exam-col" value="${c.id}" ${examId && c.unitId === examId ? "checked" : ""}><span><strong>${esc(c.lecture ? `${c.lecture} · ${c.title}` : c.title)}</strong><small>${plural(S.deckStats([c.id]).total, "card")}${other ? ` · now in ${esc(other.name)}` : ""}</small></span></label>`; }).join("")}</div>`;
   }
-  function openExamForm(id) {
-    if (!S.db.courses.length) { toast("Create a course first, then add its exams."); return; }
-    const ex = id ? state.exams.find((e) => e.id === id) : null;
-    const d = ex || { title: "", kind: "Exam", courseId: activeCourses()[0]?.id || S.db.courses[0].id, date: isoDate(new Date(TODAY + 7 * DAY)), time: "", collections: null };
-    const selected = d.collections || S.db.decks.filter((c) => c.courseId === d.courseId).map((c) => c.id);
+  function openExamForm(id, course) {
+    if (!S.db.courses.length) { openCourseForm(); toast("Create a course first. Exams live inside courses."); return; }
+    const u = id ? S.unit(id) : null;
+    const d = u ? examOf(u) : { title: "", kind: "Exam", courseId: course || activeCourses()[0]?.id || S.db.courses[0].id, date: "", time: "" };
     openModal(`
-      <header class="modal__head"><h2 class="heading">${ex ? "Edit exam" : "Add exam"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
+      <header class="modal__head"><h2 class="heading">${u ? "Edit exam" : "New exam"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
       <form class="modal__body" id="exam-form" novalidate>
-        <label class="field"><span class="field__label">Name</span><input id="exam-title" value="${esc(d.title)}" placeholder="e.g. Exam 3, Quiz 6, Lab practical 2" autofocus autocomplete="off"></label>
-        <div class="field-row"><label class="field"><span class="field__label">Course</span><select id="exam-course">${S.db.courses.map((c) => `<option value="${c.id}" ${c.id === d.courseId ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
-          <label class="field"><span class="field__label">Type</span><select id="exam-kind">${EXAM_KINDS.map((k) => `<option ${k === d.kind ? "selected" : ""}>${k}</option>`).join("")}</select></label></div>
-        <div class="field-row"><label class="field"><span class="field__label">Date</span><input type="date" id="exam-date" value="${esc(d.date)}"></label><label class="field"><span class="field__label">Time <small>optional</small></span><input type="time" id="exam-time" value="${esc(d.time || "")}"></label></div>
-        <fieldset class="field"><legend class="field__label">Collections this exam covers</legend><div id="exam-cols">${examColsHtml(d.courseId, selected)}</div><span class="field__hint">Kivo uses these to show how much of the exam material you’ve studied.</span></fieldset>
+        <div class="field-row"><label class="field"><span class="field__label">Course</span><select id="exam-course" ${u ? "disabled" : ""}>${S.db.courses.map((c) => `<option value="${c.id}" ${c.id === d.courseId ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
+          <label class="field"><span class="field__label">Name</span><input id="exam-title" value="${esc(d.title)}" placeholder="e.g. Exam 3, Quiz 6, Final" autofocus autocomplete="off"></label></div>
+        <div class="field-row field-row--3"><label class="field"><span class="field__label">Type</span><select id="exam-kind">${EXAM_KINDS.map((k) => `<option ${k === d.kind ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+          <label class="field"><span class="field__label">Date <small>optional</small></span><input type="date" id="exam-date" value="${esc(d.date)}"></label><label class="field"><span class="field__label">Time <small>optional</small></span><input type="time" id="exam-time" value="${esc(d.time || "")}"></label></div>
+        <fieldset class="field"><legend class="field__label">Lectures on this exam</legend><div id="exam-cols">${examColsHtml(d.courseId, u?.id)}</div><span class="field__hint">Each lecture collection sits in one exam. Ticking one here moves it into this exam.</span></fieldset>
         <p class="field__error" id="form-error" role="alert" hidden></p>
       </form>
-      <footer class="modal__foot">${ex ? `<button class="btn btn--ghost btn--danger" data-action="exam-delete" data-id="${ex.id}">Delete</button>` : ""}<button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--primary" data-action="exam-save" data-id="${ex ? ex.id : ""}">${ex ? "Save changes" : "Add exam"}</button></footer>`,
-      { label: ex ? "Edit exam" : "Add exam", onMount: (m) => {
-        $("#exam-course", m).addEventListener("change", (e) => { $("#exam-cols", m).innerHTML = examColsHtml(e.target.value, S.db.decks.filter((c) => c.courseId === e.target.value).map((c) => c.id)); });
-        $("#exam-form", m).addEventListener("submit", (e) => { e.preventDefault(); saveExamFromForm(ex?.id || null); });
+      <footer class="modal__foot">${u ? `<button class="btn btn--ghost btn--danger" data-action="open-unit-form" data-id="${u.id}" data-del="1">Delete exam</button>` : ""}<button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--primary" data-action="exam-save" data-id="${u ? u.id : ""}">${u ? "Save changes" : "Create exam"}</button></footer>`,
+      { label: u ? "Edit exam" : "New exam", onMount: (m) => {
+        $("#exam-course", m).addEventListener("change", (e) => { $("#exam-cols", m).innerHTML = examColsHtml(e.target.value, null); });
+        $("#exam-form", m).addEventListener("submit", (e) => { e.preventDefault(); saveExamFromForm(u?.id || null); });
       } });
   }
   function saveExamFromForm(id) {
-    const title = $("#exam-title").value.trim(), date = $("#exam-date").value;
+    const title = $("#exam-title").value.trim();
     if (!title) return formError("Give the exam a name, like “Exam 3”.", $("#exam-title"));
-    if (!date) return formError("Choose the exam date.", $("#exam-date"));
-    const data = { title, date, kind: $("#exam-kind").value, courseId: $("#exam-course").value, time: $("#exam-time").value, collections: $$("input[name='exam-col']:checked").map((i) => i.value) };
-    if (id) Object.assign(state.exams.find((e) => e.id === id), data); else state.exams.push({ id: "ex-" + Date.now().toString(36), source: "manual", ...data });
-    saveExams(); closeModal(true); render(); toast(id ? "Exam updated" : `Added ${title} on ${fmtDate(date)}`, { tone: "success" });
+    const courseId = id ? S.unit(id).courseId : $("#exam-course").value;
+    const data = { name: title, kind: $("#exam-kind").value, date: $("#exam-date").value, time: $("#exam-time").value };
+    const u = id ? S.update("unit", id, data) : S.addUnit(courseId, title, data);
+    const picked = new Set($$("input[name='exam-col']:checked").map((i) => i.value));
+    for (const d of S.db.decks.filter((x) => x.courseId === courseId)) { if (picked.has(d.id)) d.unitId = u.id; else if (d.unitId === u.id) d.unitId = null; }
+    S.save(); closeModal(true); render(); toast(id ? "Exam saved" : `Created ${title}${data.date ? ` on ${fmtDate(data.date)}` : ""}`, { tone: "success" });
   }
   const unescapeICS = (v) => v.replace(/\\n/gi, " ").replace(/\\([,;\\])/g, "$1").trim();
   function parseICS(text) {
@@ -1016,10 +1008,20 @@
       if (!kind) { skipped++; continue; }
       if (daysUntil(ev.date) < 0) { past++; continue; }
       const courseId = matchCourse(ev.summary);
-      const dup = state.exams.some((x) => x.date === ev.date && x.courseId === courseId && (x.title.toLowerCase() === title.toLowerCase() || x.kind === kind));
-      found.push({ title, kind, courseId, date: ev.date, time: ev.time || "", dup, selected: !dup });
+      const same = courseId ? findExamFolder(courseId, title, kind) : null;
+      const dup = !!same && same.date === ev.date;
+      found.push({ title, kind, courseId, date: ev.date, time: ev.time || "", dup, existingId: same && !dup ? same.id : null, selected: !dup });
     }
     return { found: found.sort(byDate), skipped, past };
+  }
+  /* Match a calendar event to an exam folder: same name, or for a final or
+     midterm (one per course) the course's only folder of that type. */
+  function findExamFolder(courseId, title, kind) {
+    const list = S.db.units.filter((u) => u.courseId === courseId);
+    const byName = list.find((u) => u.name.toLowerCase() === title.toLowerCase());
+    if (byName) return byName;
+    if (kind === "Final" || kind === "Midterm") { const k = list.filter((u) => (u.kind || "Exam") === kind); if (k.length === 1) return k[0]; }
+    return null;
   }
   function sampleCanvasICS() {
     const stamp = (off, t) => `${isoDate(new Date(TODAY + off * DAY)).replace(/-/g, "")}T${t.replace(":", "")}00`;
@@ -1031,7 +1033,7 @@
     openModal(`
       <header class="modal__head"><h2 class="heading">Import exams from your calendar</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
       <div class="modal__body">
-        <p class="caption">Kivo reads a calendar file and picks out quizzes, exams and practicals. Lectures, assignments and other events are skipped.</p>
+        <p class="caption">Kivo reads a calendar file and picks out quizzes, exams and practicals. Each one becomes an exam folder in its course (or dates the folder you already have). Lectures, assignments and other events are skipped.</p>
         <div class="source-grid">
           <section class="source"><h3 class="body-strong">From Canvas</h3><ol class="howto"><li>Open <strong>Calendar</strong> in Canvas.</li><li>Select <strong>Calendar Feed</strong> at the bottom of the sidebar and copy the link.</li><li>Paste the link into your browser to download the <code>.ics</code> file.</li></ol></section>
           <section class="source"><h3 class="body-strong">From Google Calendar</h3><ol class="howto"><li>Open <strong>Settings</strong>, then <strong>Import &amp; export</strong>.</li><li>Select <strong>Export</strong> and unzip the download.</li><li>Pick the <code>.ics</code> file for your school calendar.</li></ol></section>
@@ -1062,9 +1064,9 @@
       <div class="modal__body">
         <p class="caption">Found ${plural(ci.found.length, "upcoming assessment")}. Skipped ${plural(ci.skipped, "other event")} like lectures, assignments and office hours${ci.past ? `, and ${ci.past} past ${ci.past === 1 ? "exam" : "exams"}` : ""}.</p>
         <ul class="import-list">${ci.found.map((f, i) => `<li class="import-row ${f.dup ? "is-dup" : ""}"><input type="checkbox" id="imp-${i}" data-change="imp-toggle" data-index="${i}" ${f.selected ? "checked" : ""} ${f.dup ? "disabled" : ""}>
-          <label class="import-row__main" for="imp-${i}"><strong>${esc(f.title)}</strong><small>${fmtDate(f.date)}${f.time ? ` · ${fmtTime(f.time)}` : ""} · ${f.kind}</small></label>
+          <label class="import-row__main" for="imp-${i}"><strong>${esc(f.title)}</strong><small>${fmtDate(f.date)}${f.time ? ` · ${fmtTime(f.time)}` : ""} · ${f.kind}${f.existingId ? " · adds the date to your folder" : ""}</small></label>
           ${f.dup ? `<span class="badge badge--neutral">${icon("check", 12)}Already added</span>` : `<select class="import-row__course ${!f.courseId ? "is-missing" : ""}" aria-label="Course for ${esc(f.title)}" data-change="imp-course" data-index="${i}"><option value="">Choose course…</option>${S.db.courses.map((c) => `<option value="${c.id}" ${c.id === f.courseId ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`}</li>`).join("")}</ul>
-        <p class="caption">Each exam is linked to every collection in its course. You can change that from the exam later.</p>
+        <p class="caption">New exams start empty. Add a collection for each lecture as the course goes on.</p>
         <p class="field__error" id="form-error" role="alert" hidden></p>
       </div>
       <footer class="modal__foot"><button class="btn btn--ghost" data-action="open-calendar-import">Back</button><button class="btn btn--primary" id="ics-import-btn" data-action="ics-import" ${importCount() ? "" : "disabled"}>Add ${plural(importCount(), "exam")}</button></footer>`, { label: "Review exams to import" });
@@ -1072,8 +1074,12 @@
   function doCalendarImport() {
     const picked = state.calImport.found.filter((f) => f.selected && !f.dup), missing = picked.filter((f) => !f.courseId);
     if (missing.length) return formError(`Choose a course for ${missing.map((m) => `“${m.title}”`).join(", ")}, or untick ${missing.length === 1 ? "it" : "them"}.`);
-    picked.forEach((f, i) => state.exams.push({ id: `ex-${Date.now().toString(36)}-${i}`, title: f.title, kind: f.kind, courseId: f.courseId, date: f.date, time: f.time, collections: S.db.decks.filter((c) => c.courseId === f.courseId).map((c) => c.id), source: "calendar" }));
-    saveExams(); state.calImport = null; closeModal(true); navigate("#/exams"); toast(`Added ${plural(picked.length, "exam")} from your calendar`, { tone: "success" });
+    for (const f of picked) {
+      const same = findExamFolder(f.courseId, f.title, f.kind);
+      if (same) S.update("unit", same.id, { date: f.date, time: f.time, kind: f.kind, source: "calendar" });
+      else S.addUnit(f.courseId, f.title, { kind: f.kind, date: f.date, time: f.time, source: "calendar" });
+    }
+    state.calImport = null; closeModal(true); navigate("#/exams"); toast(`Added ${plural(picked.length, "exam")} from your calendar`, { tone: "success" });
   }
 
   /* ======================================================================
@@ -1088,7 +1094,7 @@
     const topics = [];
     for (const d of S.db.decks.filter((x) => !S.paused(x.courseId))) {
       const bySec = {};
-      for (const c of S.db.cards.filter((x) => x.deckId === d.id)) { const n = S.note(c.noteId); const k = n.section || d.title; (bySec[k] ||= { lapses: 0, low: 0 }); bySec[k].lapses += c.sched.lapses; if (c.sched.state === "review" && S.retrievability((Date.now() - c.sched.last) / DAY, c.sched.s) < 0.85) bySec[k].low++; }
+      for (const c of S.db.cards.filter((x) => x.deckId === d.id)) { const k = [d.lecture, d.title].filter(Boolean).join(" · "); (bySec[k] ||= { lapses: 0, low: 0 }); bySec[k].lapses += c.sched.lapses; if (c.sched.state === "review" && S.retrievability((Date.now() - c.sched.last) / DAY, c.sched.s) < 0.85) bySec[k].low++; }
       for (const [k, v] of Object.entries(bySec)) if (v.lapses || v.low) topics.push({ topic: k, deck: d, ...v });
     }
     topics.sort((a, b) => (b.lapses + b.low) - (a.lapses + a.low));
@@ -1166,7 +1172,7 @@
         <div class="field-row"><label class="field"><span class="field__label">Semester</span><select id="course-sem"><option value="">Not in a semester</option>${S.semesterList().map((x) => `<option value="${x.id}" ${x.id === defSem ? "selected" : ""}>${esc(x.name)}${x.archived ? " (archived)" : ""}</option>`).join("")}</select></label>
           <label class="field"><span class="field__label">Course code <small>optional</small></span><input id="course-code" value="${esc(c?.code || "")}" placeholder="OPT 641"><span class="field__hint">Used to match calendar imports.</span></label></div>
         <fieldset class="field"><legend class="field__label">Color</legend><div class="choice-row">${HUES.map(([v, l]) => `<label class="chip-radio"><input type="radio" name="course-hue" value="${v}" ${(c?.hue || "lavender") === v ? "checked" : ""}><span><span class="dot dot--${v}"></span>&nbsp;${l}</span></label>`).join("")}</div></fieldset>
-        ${c ? "" : `<label class="field"><span class="field__label">First unit <small>optional</small></span><input id="course-unit" placeholder="Unit 1 · Introduction"><span class="field__hint">You can add more units later.</span></label>`}
+        ${c ? "" : `<label class="field"><span class="field__label">First exam <small>optional</small></span><input id="course-unit" placeholder="Exam 1"><span class="field__hint">Each exam holds the lectures it covers. Add more anytime.</span></label>`}
         <p class="field__error" id="form-error" role="alert" hidden></p>
       </form>
       <footer class="modal__foot"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--primary" data-action="course-save" data-id="${c?.id || ""}">${c ? "Save" : "Create course"}</button></footer>`,
@@ -1177,13 +1183,13 @@
     if (u && del) {
       const n = S.decksOf(u.courseId, u.id).length;
       return openModal(`<header class="modal__head"><h2 class="heading">Delete ${esc(u.name)}?</h2></header><div class="modal__body">
-        ${n ? `<fieldset class="field"><legend class="field__label">This unit has ${plural(n, "collection")}. What happens to them?</legend><div class="radio-stack">
-          <label class="radio-card is-selected"><input type="radio" name="unit-del" value="keep" checked><span><strong>Keep them</strong><small>They move to “Not in a unit” in the same course.</small></span></label>
-          <label class="radio-card"><input type="radio" name="unit-del" value="all"><span><strong>Delete them too</strong><small>Deletes ${plural(S.deckStats(S.scopeDeckIds("unit:" + id)).total, "card")} and their review history.</small></span></label></div></fieldset>` : `<p class="caption">This unit is empty.</p>`}
-        <div class="stack-h stack-h--end"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--danger-solid" data-action="unit-delete" data-id="${id}">Delete unit</button></div></div>`, { label: "Delete unit", size: "sm" });
+        ${n ? `<fieldset class="field"><legend class="field__label">This exam has ${plural(n, "lecture collection")}. What happens to them?</legend><div class="radio-stack">
+          <label class="radio-card is-selected"><input type="radio" name="unit-del" value="keep" checked><span><strong>Keep them</strong><small>They move to “Not in an exam yet” in the same course.</small></span></label>
+          <label class="radio-card"><input type="radio" name="unit-del" value="all"><span><strong>Delete them too</strong><small>Deletes ${plural(S.deckStats(S.scopeDeckIds("unit:" + id)).total, "card")} and their review history.</small></span></label></div></fieldset>` : `<p class="caption">This exam has no lectures.</p>`}
+        <div class="stack-h stack-h--end"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--danger-solid" data-action="unit-delete" data-id="${id}">Delete exam</button></div></div>`, { label: "Delete exam", size: "sm" });
     }
-    const courseId = u?.courseId || course || activeCourses()[0]?.id || S.db.courses[0]?.id;
-    if (!courseId) { openCourseForm(); toast("Create a course first. Units live inside courses."); return; }
+    if (!del) return openExamForm(id, course);
+    const courseId = u?.courseId || course;
     openModal(`
       <header class="modal__head"><h2 class="heading">${u ? "Rename unit" : "New unit"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
       <form class="modal__body" id="unit-form" novalidate>
@@ -1200,16 +1206,16 @@
     if (!S.db.courses.length) { openCourseForm(); toast("Start with a course. Collections live inside courses."); return; }
     const courseId = d?.courseId || course || activeCourses()[0]?.id || S.db.courses[0].id;
     const unitId = d ? d.unitId || "" : unit ?? (S.unitsOf(courseId)[0]?.id || "");
-    const unitOpts = (cid, sel) => `<option value="">Not in a unit</option>${S.unitsOf(cid).map((u) => `<option value="${u.id}" ${u.id === sel ? "selected" : ""}>${esc(u.name)}</option>`).join("")}<option value="__new">+ New unit…</option>`;
+    const unitOpts = (cid, sel) => `<option value="">Not in an exam yet</option>${S.unitsOf(cid).map((u) => `<option value="${u.id}" ${u.id === sel ? "selected" : ""}>${esc(u.name)}${u.date ? ` · ${fmtDate(u.date, { month: "short", day: "numeric" })}` : ""}</option>`).join("")}<option value="__new">+ New exam…</option>`;
     openModal(`
-      <header class="modal__head"><h2 class="heading">${d ? "Edit collection" : "New collection"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
+      <header class="modal__head"><h2 class="heading">${d ? "Edit lecture collection" : "New lecture collection"}</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">${icon("x", 18)}</button></header>
       <form class="modal__body" id="deck-form" novalidate>
         <div class="field-row"><label class="field"><span class="field__label">Course</span><select id="deck-course">${S.db.courses.map((c) => `<option value="${c.id}" ${c.id === courseId ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
-          <label class="field"><span class="field__label">Unit</span><select id="deck-unit">${unitOpts(courseId, unitId)}</select></label></div>
-        <label class="field" id="deck-newunit-wrap" hidden><span class="field__label">New unit name</span><input id="deck-newunit" placeholder="Unit 3 · Vasculature"></label>
-        <label class="field"><span class="field__label">Collection name</span><input id="deck-title" value="${esc(d?.title || "")}" placeholder="e.g. Cavernous Sinus" autofocus autocomplete="off"></label>
-        <div class="field-row"><label class="field"><span class="field__label">Lecture <small>optional</small></span><input id="deck-lecture" value="${esc(d?.lecture || "")}" placeholder="Lecture 09"></label>
-          <label class="field"><span class="field__label">Topic <small>optional</small></span><input id="deck-topic" value="${esc(d?.topic || "")}" placeholder="Dural venous sinuses"></label></div>
+          <label class="field"><span class="field__label">Exam</span><select id="deck-unit">${unitOpts(courseId, unitId)}</select></label></div>
+        <label class="field" id="deck-newunit-wrap" hidden><span class="field__label">New exam name</span><input id="deck-newunit" placeholder="Exam 3"></label>
+        <div class="field-row field-row--tight"><label class="field"><span class="field__label">Lecture</span><input id="deck-lecture" value="${esc(d?.lecture || "")}" placeholder="Lecture 09"></label>
+          <label class="field"><span class="field__label">Topic</span><input id="deck-title" value="${esc(d?.title || "")}" placeholder="e.g. Cavernous Sinus" autofocus autocomplete="off"></label></div>
+        <input type="hidden" id="deck-topic" value="${esc(d?.topic || "")}">
         <label class="field"><span class="field__label">Description <small>optional</small></span><textarea id="deck-desc" rows="2">${esc(d?.description || "")}</textarea></label>
         <p class="caption">Shows in your library as <strong id="deck-preview"></strong></p>
         <p class="field__error" id="form-error" role="alert" hidden></p>
@@ -1219,8 +1225,8 @@
         const upd = () => {
           const cid = $("#deck-course", m).value, uval = $("#deck-unit", m).value;
           $("#deck-newunit-wrap", m).hidden = uval !== "__new";
-          const uname = uval === "__new" ? $("#deck-newunit", m).value || "New unit" : uval ? S.unit(uval)?.name : "";
-          $("#deck-preview", m).textContent = [S.course(cid)?.name, uname, $("#deck-title", m).value || "Collection name"].filter(Boolean).join(" › ");
+          const uname = uval === "__new" ? $("#deck-newunit", m).value || "New exam" : uval ? S.unit(uval)?.name : "";
+          $("#deck-preview", m).textContent = [S.course(cid)?.name, uname, [$("#deck-lecture", m).value, $("#deck-title", m).value || "Topic"].filter(Boolean).join(" · ")].filter(Boolean).join(" › ");
         };
         $("#deck-course", m).addEventListener("change", (e) => { $("#deck-unit", m).innerHTML = unitOpts(e.target.value, S.unitsOf(e.target.value)[0]?.id || ""); upd(); });
         $$("input, select, textarea", m).forEach((el) => el.addEventListener("input", upd)); upd();
@@ -1489,7 +1495,7 @@
     "library-view": (el) => { state.libraryView = el.dataset.value; prefs.set("libraryView", state.libraryView); render(); },
     "clear-library": () => { state.libraryQuery = ""; render(); },
     "reset-sample": () => openModal(`<header class="modal__head"><h2 class="heading">Reset to the sample library?</h2></header><div class="modal__body"><div class="danger-box" role="alert"><p>This replaces all your semesters, courses, cards, review history and exams with Kivo’s sample data.</p><div class="stack-h"><button class="btn btn--ghost" data-action="close-modal">Cancel</button><button class="btn btn--danger-solid" data-action="reset-confirm">Reset</button></div></div></div>`, { label: "Reset sample data", size: "sm" }),
-    "reset-confirm": () => { S.resetToSample(); try { localStorage.removeItem("kivo:exams:v3"); } catch { /* ignore */ } state.exams = loadExams(); closeModal(true); navigate("#/library"); toast("Sample data restored", { tone: "success" }); },
+    "reset-confirm": () => { S.resetToSample(); closeModal(true); navigate("#/library"); toast("Sample data restored", { tone: "success" }); },
     "tree-toggle": (el) => { const k = el.dataset.id; const cur = state.collapsed[k]; const isSem = k.startsWith("sem-"); const sem = isSem ? S.semester(k.slice(4)) : null; const open = cur === undefined ? (isSem ? !sem?.archived : true) : !cur; state.collapsed[k] = open; prefs.set("collapsed", state.collapsed); render(); $(`[data-action="tree-toggle"][data-id="${k}"]`)?.focus(); },
     // semesters
     "open-semester-form": (el) => openSemesterForm({ id: el.dataset.id, del: el.dataset.del }),
@@ -1502,12 +1508,10 @@
     },
     "semester-archive": (el) => {
       const sem = S.semester(el.dataset.id), archived = !sem.archived;
-      S.update("semester", sem.id, { archived });
-      render();
-      toast(archived ? `Archived ${sem.name}. Its cards still come up for review.` : `${sem.name} is active again`, { action: archived ? "Pause reviews" : undefined, onAction: () => { S.update("semester", sem.id, { pauseReviews: true }); render(); toast(`Reviews paused for ${sem.name}`); } });
+      S.update("semester", sem.id, { archived }); render();
+      toast(archived ? `Archived ${sem.name}. Its reviews are paused.` : `Restored ${sem.name}. Its reviews are back on.`, { action: "Undo", onAction: () => { S.update("semester", sem.id, { archived: !archived }); render(); } });
     },
-    "semester-pause": (el) => { const sem = S.semester(el.dataset.id); S.update("semester", sem.id, { pauseReviews: !sem.pauseReviews }); render(); toast(sem.pauseReviews ? `Reviews paused for ${sem.name}. Cards keep their schedule and wait.` : `Reviews resumed for ${sem.name}`); },
-    "semester-delete": (el) => { const sem = S.semester(el.dataset.id); const all = $("input[name='sem-del']:checked")?.value === "all"; const gone = S.coursesIn(sem.id).map((c) => c.id); S.removeSemester(sem.id, { deleteCourses: all }); if (all) { state.exams = state.exams.filter((e) => !gone.includes(e.courseId)); saveExams(); } closeModal(true); render(); toast(`Deleted ${sem.name}`); },
+    "semester-delete": (el) => { const sem = S.semester(el.dataset.id); const all = $("input[name='sem-del']:checked")?.value === "all"; S.removeSemester(sem.id, { deleteCourses: all }); closeModal(true); render(); toast(`Deleted ${sem.name}`); },
     // courses / units / decks
     "open-course-form": (el) => openCourseForm(el?.dataset?.id, el?.dataset?.del, el?.dataset?.semester),
     "course-save": (el) => {
@@ -1517,7 +1521,7 @@
       const c = S.addCourse(data); const un = $("#course-unit").value.trim(); if (un) S.addUnit(c.id, un);
       closeModal(true); navigate(`#/course/${c.id}`); toast(`Created ${name}`, { tone: "success", action: "Add collection", onAction: () => openDeckForm({ course: c.id }) });
     },
-    "course-delete": (el) => { const c = S.course(el.dataset.id); S.removeCourse(el.dataset.id); state.exams = state.exams.filter((e) => e.courseId !== el.dataset.id); saveExams(); closeModal(true); navigate("#/library"); toast(`Deleted ${c.name}`); },
+    "course-delete": (el) => { const c = S.course(el.dataset.id); S.removeCourse(el.dataset.id); closeModal(true); navigate("#/library"); toast(`Deleted ${c.name}`); },
     "open-unit-form": (el) => openUnitForm({ id: el.dataset.id, course: el.dataset.course, del: el.dataset.del }),
     "unit-save": (el) => {
       const name = $("#unit-name").value.trim(); if (!name) return formError("Give the unit a name.", $("#unit-name"));
@@ -1527,9 +1531,9 @@
     "unit-delete": (el) => { const u = S.unit(el.dataset.id); const all = $("input[name='unit-del']:checked")?.value === "all"; S.removeUnit(el.dataset.id, { keepDecks: !all }); closeModal(true); render(); toast(`Deleted ${u.name}`); },
     "open-deck-form": (el) => openDeckForm({ id: el.dataset.id, course: el.dataset.course, unit: el.dataset.unit, del: el.dataset.del }),
     "deck-save": (el) => {
-      const title = $("#deck-title").value.trim(); if (!title) return formError("Give the collection a name.", $("#deck-title"));
+      const title = $("#deck-title").value.trim() || $("#deck-lecture").value.trim(); if (!title) return formError("Add the lecture topic, like “Cavernous Sinus”.", $("#deck-title"));
       const courseId = $("#deck-course").value; let unitId = $("#deck-unit").value || null;
-      if (unitId === "__new") { const un = $("#deck-newunit").value.trim(); if (!un) return formError("Name the new unit.", $("#deck-newunit")); unitId = S.addUnit(courseId, un).id; }
+      if (unitId === "__new") { const un = $("#deck-newunit").value.trim(); if (!un) return formError("Name the new exam, like “Exam 3”.", $("#deck-newunit")); unitId = S.addUnit(courseId, un).id; }
       const data = { title, courseId, unitId, lecture: $("#deck-lecture").value.trim(), topic: $("#deck-topic").value.trim(), description: $("#deck-desc").value.trim() };
       if (el.dataset.id) { S.update("deck", el.dataset.id, data); for (const c of S.db.cards) if (c.deckId === el.dataset.id) c.deckId = el.dataset.id; S.save(); closeModal(true); render(); toast("Collection saved", { tone: "success" }); return; }
       const d = S.addDeck(data); closeModal(true);
@@ -1547,7 +1551,6 @@
     "options-default": (el) => { S.db.options[el.dataset.course] = {}; S.save(); closeModal(true); render(); toast("Review settings restored to defaults"); },
     // card browser
     "browse-filter": (el) => { state.browse.filter = el.dataset.value; refreshBrowser(); },
-    "browse-section": (el) => { state.browse.section = el.dataset.value; refreshBrowser(); },
     "card-suspend": (el) => { const c = S.card(el.dataset.id); S.setSuspended([c.id], !c.suspended); render(); toast(c.suspended ? "Card suspended. It won’t appear in reviews." : "Card unsuspended"); },
     "card-flag": (el) => { const c = S.card(el.dataset.id); S.setFlag(c.id, c.flag ? 0 : 1); render(); },
     "card-reset": (el) => { S.resetCards([el.dataset.id]); render(); toast("Card reset to new"); },
@@ -1603,13 +1606,8 @@
       S.save(); const p = q.param; state.quiz = null; navigate(`#/study/${p}`);
     },
     // exams
-    "open-exam-form": (el) => openExamForm(el?.dataset?.id || null),
+    "open-exam-form": (el) => openExamForm(el?.dataset?.id || null, el?.dataset?.course),
     "exam-save": (el) => saveExamFromForm(el.dataset.id || null),
-    "exam-delete": (el) => {
-      if (!el.dataset.armed) { el.dataset.armed = "1"; el.textContent = "Select again to delete"; return; }
-      const i = state.exams.findIndex((e) => e.id === el.dataset.id); const [gone] = state.exams.splice(i, 1);
-      saveExams(); closeModal(true); render(); toast(`Deleted ${gone.title}`, { action: "Undo", onAction: () => { state.exams.push(gone); saveExams(); render(); } });
-    },
     "open-calendar-import": () => openCalendarImport(),
     "ics-sample": () => handleCalendarText(sampleCanvasICS(), "Alex Rivera Calendar (Canvas).ics"),
     "ics-import": () => doCalendarImport(),
@@ -1716,7 +1714,7 @@
   /* ---------- boot -------------------------------------------------------- */
   function boot() {
     const theme = prefs.get("theme", null); if (theme) document.documentElement.dataset.theme = theme;
-    S.load(); state.exams = loadExams();
+    S.load();
     $("#app").innerHTML = shell();
     document.addEventListener("click", onClick); document.addEventListener("input", onInput); document.addEventListener("change", onChange); document.addEventListener("keydown", onKey); document.addEventListener("toggle", onToggle, true);
     window.addEventListener("hashchange", () => { if (/^#\//.test(location.hash) && location.hash !== currentRoute) { currentRoute = location.hash; onRouteChange(); } });

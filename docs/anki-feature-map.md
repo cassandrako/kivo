@@ -8,11 +8,11 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 
 | Anki | Kivo | Status |
 |---|---|---|
-| Decks and subdecks (`Parent::Child`) | Semester → Course → Unit → Collection. Each level is a "deck" you can open and study. | ✅ |
-| Study a parent deck to include its subdecks | **Study course**, **Study unit** or **Study** a single collection. Never across courses: there's no mixed “study everything” and no studying a whole semester. | ✅ |
+| Decks and subdecks (`Parent::Child`) — e.g. `Course::Exam 2::Lecture 04` | Semester → Course → Exam → Lecture collection. Each level is a "deck" you can open and study. | ✅ |
+| Study a parent deck to include its subdecks | **Study course**, **Study exam** or **Study** a single lecture collection. Never across courses: there's no mixed “study everything” and no studying a whole semester. | ✅ |
 | Deck list with New / Learn / Due counts | Study page tree with the same three counts at every level | ✅ |
-| Create, rename, delete and move decks | Create, rename and delete semesters, courses, units and collections; move a collection by changing its course or unit | ✅ |
-| (no equivalent) | Archive a semester to tidy the library; its cards keep coming up for review unless you pause them | ✅ |
+| Create, rename, delete and move decks | Create, rename and delete semesters, courses, exams and collections; move a collection by changing its course or exam | ✅ |
+| (no equivalent) | Archive a semester to tidy the library; archiving pauses its reviews until you restore it | ✅ |
 | Tags | Tags on every note, searchable | ✅ |
 | Filtered decks (custom study by search) | Study by scope works now; study-by-tag and "review ahead" sessions | 🔜 |
 
@@ -101,6 +101,8 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | Keyboard shortcuts | Study, editor (`⌘↵` save), `A` add, `/` search | ✅ |
 
 ## Left out on purpose
+
+- **Sections or sub-decks inside a lecture.** One lecture is one collection; tags are there if you want finer grouping.
 
 - **Flashcard browse mode** and **clinical cases mode.** Studying is spaced review; vignettes are just cards.
 - **HTML/CSS card templates.** Templates are fixed so creating cards never becomes a coding task.

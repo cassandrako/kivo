@@ -12,11 +12,11 @@ window.KIVO_SEED = (() => {
     program: "Doctor of Optometry", year: "OD1", school: "Pennsylvania College of Optometry",
   };
 
-  // Semesters are top-level folders. Archived ones fold away in the Library;
-  // their cards keep coming up for review unless reviews are paused.
+  // Semesters are top-level folders. Archiving one folds it away in the
+  // Library and pauses its reviews until it's restored.
   const semesters = [
-    { id: "f26", name: "Fall 2026 · Year 1", archived: false, pauseReviews: false },
-    { id: "su26", name: "Summer 2026 · Bridge program", archived: true, pauseReviews: false },
+    { id: "f26", name: "Fall 2026 · Year 1", archived: false },
+    { id: "su26", name: "Summer 2026 · Bridge program", archived: true },
   ];
 
   const courses = [
@@ -28,16 +28,16 @@ window.KIVO_SEED = (() => {
     { semesterId: "f26", id: "cs", name: "Clinical Skills", code: "CLIN 640", term: "Fall · Year 1", hue: "sage" },
   ];
 
+  // Exams are the folders inside a course: each holds one collection per
+  // lecture on that exam. The date drives countdowns and the Exams page.
   const units = [
-    { id: "fnd-u1", courseId: "fnd", name: "Unit 1 · Visual System" },
-    { id: "hna-u1", courseId: "hna", name: "Unit 1 · Skull & Orbit" },
-    { id: "hna-u2", courseId: "hna", name: "Unit 2 · Neuroanatomy" },
-    { id: "hna-u3", courseId: "hna", name: "Unit 3 · Vasculature" },
-    { id: "oa-u1", courseId: "oa", name: "Unit 1 · Orbit & Adnexa" },
-    { id: "oa-u2", courseId: "oa", name: "Unit 2 · Anterior Segment" },
-    { id: "bio-u3", courseId: "bio", name: "Unit 3 · Metabolism" },
-    { id: "go-u2", courseId: "go", name: "Unit 2 · Lenses" },
-    { id: "cs-u1", courseId: "cs", name: "Unit 1 · Entrance Tests" },
+    { id: "fnd-u1", courseId: "fnd", name: "Final", kind: "Final", offset: -70, time: "09:00" },
+    { id: "hna-u1", courseId: "hna", name: "Exam 1", kind: "Exam", offset: -18, time: "13:00" },
+    { id: "hna-u2", courseId: "hna", name: "Exam 2", kind: "Exam", offset: 8, time: "13:00", source: "calendar" },
+    { id: "oa-u1", courseId: "oa", name: "Lab practical 1", kind: "Practical", offset: 15, time: "08:30", source: "calendar" },
+    { id: "bio-u3", courseId: "bio", name: "Midterm", kind: "Midterm", offset: 27, time: "10:00" },
+    { id: "go-u2", courseId: "go", name: "Quiz 4", kind: "Quiz", offset: 5, time: "09:00" },
+    { id: "cs-u1", courseId: "cs", name: "Entrance testing OSCE", kind: "OSCE", offset: 34, time: "12:00" },
   ];
 
   // Collections are Anki's decks. source: original | shared | personal-copy | modified
@@ -56,9 +56,9 @@ window.KIVO_SEED = (() => {
     { id: "hna-orbit", courseId: "hna", unitId: "hna-u1", title: "Bony Orbit & Foramina", lecture: "Lecture 02", topic: "Orbit", assessment: "Exam 1", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
     { id: "hna-pter", courseId: "hna", unitId: "hna-u2", title: "Pterygopalatine Fossa", lecture: "Lecture 06", topic: "PPF", assessment: "Exam 2", creator: { name: "Jordan Lee", initials: "JL", role: "OD1" }, source: "shared", sourceOf: "Jordan Lee’s source" },
     { id: "hna-auto", courseId: "hna", unitId: "hna-u2", title: "Autonomic Pathways to the Eye", lecture: "Lecture 07", topic: "Autonomics", assessment: "Exam 2", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
-    { id: "hna-vasc", courseId: "hna", unitId: "hna-u3", title: "Arterial Supply of the Head", lecture: "Lecture 08", topic: "Vasculature", assessment: "Exam 2", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
+    { id: "hna-vasc", courseId: "hna", unitId: "hna-u2", title: "Arterial Supply of the Head", lecture: "Lecture 08", topic: "Vasculature", assessment: "Exam 2", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
     { id: "oa-eom", courseId: "oa", unitId: "oa-u1", title: "Extraocular Muscles", lecture: "Lecture 03", topic: "EOMs", assessment: "Practical", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
-    { id: "oa-cornea", courseId: "oa", unitId: "oa-u2", title: "Corneal Layers", lecture: "Lecture 05", topic: "Cornea", assessment: "Practical", creator: { name: "Mei Tanaka", initials: "MT", role: "OD3" }, source: "shared", sourceOf: "Mei Tanaka’s source" },
+    { id: "oa-cornea", courseId: "oa", unitId: "oa-u1", title: "Corneal Layers", lecture: "Lecture 05", topic: "Cornea", assessment: "Practical", creator: { name: "Mei Tanaka", initials: "MT", role: "OD3" }, source: "shared", sourceOf: "Mei Tanaka’s source" },
     { id: "bio-gly", courseId: "bio", unitId: "bio-u3", title: "Glycolysis & Regulation", lecture: "Lecture 11", topic: "Glycolysis", assessment: "Midterm", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
     { id: "go-verg", courseId: "go", unitId: "go-u2", title: "Vergence & Thin Lenses", lecture: "Lecture 06", topic: "Vergence", assessment: "Quiz 4", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
     { id: "cs-pupil", courseId: "cs", unitId: "cs-u1", title: "Pupil Testing & RAPD", lecture: "Lab 02", topic: "Pupils", assessment: "OSCE", creator: { name: "Alex Rivera", initials: "AR" }, source: "original" },
@@ -133,15 +133,6 @@ window.KIVO_SEED = (() => {
     B("cs-pupil", "Light–near dissociation", "Name two causes of light–near dissociation.", "Argyll Robertson pupil (neurosyphilis) and Adie’s tonic pupil.", "Also dorsal midbrain (Parinaud) syndrome.", { points: "Argyll Robertson pupil, Adie’s tonic pupil" }),
   ];
 
-  /* Exams, dated relative to today so the sample always has upcoming ones. */
-  const exams = [
-    { id: "ex-go-q4", title: "Quiz 4", kind: "Quiz", courseId: "go", offset: 5, time: "09:00", collections: ["go-verg"], source: "manual" },
-    { id: "ex-hna-2", title: "Exam 2", kind: "Exam", courseId: "hna", offset: 8, time: "13:00", collections: ["hna-cn", "hna-pter", "hna-auto", "hna-vasc"], source: "calendar" },
-    { id: "ex-oa-p1", title: "Lab practical 1", kind: "Practical", courseId: "oa", offset: 15, time: "08:30", collections: ["oa-eom", "oa-cornea"], source: "calendar" },
-    { id: "ex-bio-mid", title: "Midterm", kind: "Midterm", courseId: "bio", offset: 27, time: "10:00", collections: ["bio-gly"], source: "manual" },
-    { id: "ex-cs-osce", title: "Entrance testing OSCE", kind: "OSCE", courseId: "cs", offset: 34, time: "12:00", collections: ["cs-pupil"], source: "manual" },
-  ];
-
   /* A Canvas-style calendar export: course in brackets, mixed event types. */
   const sampleCalendar = [
     { offset: 2, time: "09:00", summary: "Lecture 09: Cavernous Sinus [ANAT 612: Head & Neck Anatomy]" },
@@ -159,5 +150,5 @@ window.KIVO_SEED = (() => {
   /* Reviews per day before today, so Insights has a history to show. */
   const sampleActivity = [42, 38, 0, 55, 61, 47, 22, 35, 58, 64, 0, 40, 52, 70, 66, 45, 30, 0, 48, 57, 62, 71, 39, 44, 68, 59, 63];
 
-  return { user, semesters, courses, units, decks, notes, exams, sampleCalendar, sampleActivity };
+  return { user, semesters, courses, units, decks, notes, sampleCalendar, sampleActivity };
 })();

@@ -56,9 +56,13 @@ This takes the best part of AI question generation (instant practice questions) 
 - Questions are built instantly on the device.
 - Future option: an AI assistant could *rephrase* a card into a new question stem or vignette. It must cite the source card and the student must review it before use. It never introduces facts that aren't in the student's cards.
 
+## How students actually organize
+
+Students group lectures by the exam they're on, not by abstract units or sub-topics. Kivo mirrors that: **Semester → Course → Exam → Lecture collection**. An exam folder (Exam 2, Midterm, Lab practical 1) holds one collection per lecture, and its date is the exam date. The Exams page, countdowns, coverage and calendar import all read from these folders, so there's one source of truth. Finished semesters are archived, which folds them away and pauses their reviews until restored.
+
 ## One course at a time
 
-Reviews never mix courses. Home shows today's due cards per course and starts with the course that has the nearest exam (or the most due). When that course is finished, the summary offers the next one. Students can narrow further to one unit or one collection, but never wider than a course: staying in one subject keeps related material together and makes "Hard" and "Again" mean something within that subject.
+Reviews never mix courses. Home shows today's due cards per course and starts with the course that has the nearest exam (or the most due). When that course is finished, the summary offers the next one. Students can narrow further to one exam or one collection, but never wider than a course: staying in one subject keeps related material together and makes "Hard" and "Again" mean something within that subject.
 
 ## Personal-first sharing
 

@@ -56,6 +56,10 @@ This takes the best part of AI question generation (instant practice questions) 
 - Questions are built instantly on the device.
 - Future option: an AI assistant could *rephrase* a card into a new question stem or vignette. It must cite the source card and the student must review it before use. It never introduces facts that aren't in the student's cards.
 
+## One course at a time
+
+Reviews never mix courses. Home shows today's due cards per course and starts with the course that has the nearest exam (or the most due). When that course is finished, the summary offers the next one. Students can narrow further to one unit or one collection, but never wider than a course: staying in one subject keeps related material together and makes "Hard" and "Again" mean something within that subject.
+
 ## Personal-first sharing
 
 Sharing in Kivo never means co-editing one deck.

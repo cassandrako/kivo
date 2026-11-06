@@ -173,6 +173,14 @@
   }
   const formError = (msg, field) => { const e = $("#form-error"); if (e) { e.textContent = msg; e.hidden = false; } if (field) { field.setAttribute("aria-invalid", "true"); field.focus(); } };
 
+  /* Reviews are always one course at a time. Pick the course to start with:
+     the one with the nearest exam that has cards due, otherwise the most due. */
+  function courseQueue(excludeId = null) {
+    const list = S.db.courses.filter((c) => !S.paused(c.id) && c.id !== excludeId).map((c) => ({ c, n: S.counts("course:" + c.id) })).filter((x) => x.n.total);
+    const examDays = (cid) => { const e = upcomingExams().find((x) => x.courseId === cid); return e ? daysUntil(e.date) : Infinity; };
+    return list.sort((a, b) => examDays(a.c.id) - examDays(b.c.id) || b.n.total - a.n.total).map((x) => ({ ...x, exam: upcomingExams().find((e) => e.courseId === x.c.id) }));
+  }
+
   /* ======================================================================
      HOME
      ====================================================================== */
@@ -181,9 +189,8 @@
     const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     const all = S.counts("all");
     const exams = upcomingExams().slice(0, 3), next = exams[0];
-    const perCourse = S.db.courses.filter((c) => !S.paused(c.id)).map((c) => ({ c, n: S.counts("course:" + c.id) })).filter((x) => x.n.total);
+    const queue = courseQueue(), first = queue[0];
     const recent = S.db.decks.filter((d) => !isArchived(d.courseId)).sort((a, b) => (S.lastStudied([b.id]) || b.modified) - (S.lastStudied([a.id]) || a.modified)).slice(0, 3);
-    const minutes = Math.max(1, Math.round(all.total * 0.4));
     const reviewedToday = S.db.log.filter((l) => l.ts >= TODAY).length;
     const tomorrow = S.forecast(2)[1];
     return `
@@ -196,15 +203,15 @@
         <section class="card hero ${all.total ? "" : "hero--done"}" aria-labelledby="today-title">
           <div class="hero__main">
             <p class="overline">Today’s review</p>
-            ${all.total ? `
-              <h2 id="today-title" class="hero__count"><span class="num">${all.total}</span> ${all.total === 1 ? "card" : "cards"} to study</h2>
-              <p class="hero__meta">${countPills(all)}<span>${all.new} new · ${all.learn} learning · ${all.review} review · about ${minutes} min</span></p>
-              <div class="hero__actions"><a class="btn btn--primary btn--lg" href="#/study/all">${icon("play", 16)}Start Reviewing</a><a class="btn btn--ghost btn--lg" href="#/study">Choose what to study</a></div>` : `
+            ${first ? `
+              <h2 id="today-title" class="hero__count"><span class="num">${all.total}</span> ${all.total === 1 ? "card" : "cards"} across ${plural(queue.length, "course")}</h2>
+              <p class="hero__meta">Review one course at a time so you stay in one subject. ${first.exam ? `Start with ${esc(first.c.name)}: ${esc(first.exam.title)} is ${daysLabel(daysUntil(first.exam.date))}.` : `Start with ${esc(first.c.name)}, which has the most due.`}</p>
+              <div class="hero__actions"><a class="btn btn--primary btn--lg" href="#/study/course-${first.c.id}">${icon("play", 16)}Start ${esc(first.c.name)} · ${first.n.total}</a><a class="btn btn--ghost btn--lg" href="#/study">Pick a unit or collection</a></div>` : `
               <h2 id="today-title" class="hero__count">All caught up</h2>
               <p class="hero__meta">${reviewedToday ? `You reviewed ${plural(reviewedToday, "card")} today. ` : ""}${all.learnLater ? `${plural(all.learnLater, "learning card")} will be ready again shortly.` : `${plural(tomorrow, "card")} due tomorrow.`}</p>
               <div class="hero__actions"><a class="btn btn--secondary btn--lg" href="#/builder">${icon("plus", 16)}Add cards</a><a class="btn btn--ghost btn--lg" href="#/insights">See insights</a></div>`}
           </div>
-          ${perCourse.length ? `<ul class="hero__sources" aria-label="Cards to study by course">${perCourse.map(({ c, n }) => `<li><a href="#/study/course-${c.id}"><span class="dot dot--${c.hue}"></span><span class="hero__source-name">${esc(c.name)}${isArchived(c.id) ? ` <small class="muted">· archived</small>` : ""}</span><span class="hero__source-n">${n.total}</span></a></li>`).join("")}</ul>` : ""}
+          ${queue.length ? `<ul class="hero__sources hero__sources--courses" aria-label="Courses with cards to study">${queue.map(({ c, n, exam }) => `<li><a href="#/study/course-${c.id}"><span class="dot dot--${c.hue}"></span><span class="hero__source-name">${esc(c.name)}${exam ? `<small class="caption">${esc(exam.title)} ${daysLabel(daysUntil(exam.date))}</small>` : isArchived(c.id) ? `<small class="caption">Archived semester · keeping it fresh</small>` : ""}</span>${countPills(n, { compact: true })}<span class="hero__source-go">${icon("play", 14)}Study</span></a></li>`).join("")}</ul>` : ""}
         </section>
         <section class="card exams" aria-labelledby="exams-title">
           <div class="card__head"><h2 id="exams-title" class="heading">Upcoming exams</h2><a class="link" href="#/exams">Manage</a></div>
@@ -313,7 +320,7 @@
       <header class="semester__head">
         <div class="semester__title"><span class="unit__icon">${icon("folder", 18)}</span><h2 id="sem-${sem?.id || "none"}" class="heading">${esc(sem ? sem.name : "Not in a semester")}</h2>
           <span class="caption">${plural(rows.length, "course")}</span>${sem?.pauseReviews ? `<span class="badge badge--neutral">${icon("pause", 12)}Reviews paused</span>` : ""}</div>
-        ${sem ? `<div class="unit__actions">${n.total && !sem.pauseReviews ? `<a class="btn btn--secondary btn--sm" href="#/study/semester-${sem.id}">${icon("play", 14)}Study semester · ${n.total}</a>` : ""}${menu("sem-" + sem.id, items)}</div>` : ""}
+        ${sem ? `<div class="unit__actions">${n.total && !sem.pauseReviews ? `<span class="caption">${plural(n.total, "card")} to study</span>` : ""}${menu("sem-" + sem.id, items)}</div>` : ""}
       </header>
       ${rows.length || sem ? coursesHtml(rows, { addTo: sem && !sem.archived ? sem.id : undefined }) : ""}
     </section>`;
@@ -634,7 +641,7 @@
       return `<tr class="tree__row tree__row--${level} ${n.total ? "" : "is-done"}">
         <th scope="row">${extra}${href ? `<a href="${href}">${esc(label)}</a>` : `<span>${esc(label)}</span>`}${note}</th>
         <td class="num cnt-col cnt-col--new">${n.new}</td><td class="num cnt-col cnt-col--learn">${n.learn}</td><td class="num cnt-col cnt-col--review">${n.review}</td>
-        <td class="tree__go"><a class="btn btn--${level === "sem" || level === "course" ? "primary" : "secondary"} btn--sm ${n.total ? "" : "is-quiet"}" href="#/study/${toParam(scope)}" aria-label="Study ${esc(label)}">${icon("play", 14)}Study</a></td></tr>`;
+        <td class="tree__go">${level === "sem" ? "" : `<a class="btn btn--${level === "course" ? "primary" : "secondary"} btn--sm ${n.total ? "" : "is-quiet"}" href="#/study/${toParam(scope)}" aria-label="Study ${esc(label)}">${icon("play", 14)}Study</a>`}</td></tr>`;
     };
     const toggle = (key, label, open) => `<button class="tree__toggle" data-action="tree-toggle" data-id="${key}" aria-expanded="${open}" aria-label="${open ? "Collapse" : "Expand"} ${esc(label)}">${icon(open ? "chevronDown" : "chevronRight", 16)}</button>`;
     const courseRows = (c, depth) => {
@@ -658,15 +665,15 @@
     const tree = sems.map(semRows).join("") + S.coursesIn(null).map((c) => courseRows(c, 0)).join("");
     const pausedN = S.semesterList().filter((x) => x.pauseReviews).length;
     return `
-      <header class="page-header"><div><h1 class="title">Study</h1><p class="lede">Study everything that’s due, or pick a semester, course, unit or single collection.</p></div></header>
+      <header class="page-header"><div><h1 class="title">Study</h1><p class="lede">Reviews happen one course at a time. Study a whole course, one unit, or a single collection.</p></div></header>
       <section class="card hero hero--compact"><div class="hero__main">
-        <p class="overline">Everything due today</p>
-        <h2 class="hero__count">${all.total ? `<span class="num">${all.total}</span> ${all.total === 1 ? "card" : "cards"}` : "All caught up"}</h2>
-        <p class="hero__meta">${countPills(all)}<span>new · learning · review</span></p>
-        ${all.total ? `<div class="hero__actions"><a class="btn btn--primary btn--lg" href="#/study/all">${icon("play", 16)}Start Reviewing</a></div>` : ""}
+        <p class="overline">Due today</p>
+        <h2 class="hero__count">${all.total ? `<span class="num">${all.total}</span> ${all.total === 1 ? "card" : "cards"} across ${plural(courseQueue().length, "course")}` : "All caught up"}</h2>
+        ${courseQueue()[0] ? `<p class="hero__meta">${countPills(courseQueue()[0].n)}<span>${esc(courseQueue()[0].c.name)} is up next${courseQueue()[0].exam ? `, with ${esc(courseQueue()[0].exam.title)} ${daysLabel(daysUntil(courseQueue()[0].exam.date))}` : ""}.</span></p>
+        <div class="hero__actions"><a class="btn btn--primary btn--lg" href="#/study/course-${courseQueue()[0].c.id}">${icon("play", 16)}Start ${esc(courseQueue()[0].c.name)}</a></div>` : ""}
       </div></section>
       ${S.db.courses.length ? `<div class="table-wrap card tree-wrap"><table class="table tree">
-        <thead><tr><th scope="col">Semester › Course › Unit › Collection</th><th scope="col" class="cnt-col cnt-col--new">New</th><th scope="col" class="cnt-col cnt-col--learn">Learn</th><th scope="col" class="cnt-col cnt-col--review">Due</th><th scope="col"><span class="sr-only">Study</span></th></tr></thead>
+        <thead><tr><th scope="col">Course › Unit › Collection</th><th scope="col" class="cnt-col cnt-col--new">New</th><th scope="col" class="cnt-col cnt-col--learn">Learn</th><th scope="col" class="cnt-col cnt-col--review">Due</th><th scope="col"><span class="sr-only">Study</span></th></tr></thead>
         <tbody>${tree}</tbody></table></div>` : emptyState("Nothing to study yet", "Create a course and add cards to it first.", `<button class="btn btn--primary" data-action="open-course-form">New course</button>`, "study")}
       ${prototypeNote(`Counts follow each course’s daily limits (default 20 new and 200 reviews a day), set in a course’s Review settings.${pausedN ? ` ${plural(pausedN, "semester")} with paused reviews ${pausedN === 1 ? "is" : "are"} hidden.` : ""}`)}`;
   }
@@ -769,6 +776,8 @@
     const tomorrowCount = S.db.cards.filter((c) => ids.has(c.deckId) && !c.suspended && c.sched.state === "review" && S.startOfDay(c.sched.due) === TODAY + DAY).length;
     const label = { 1: "Again", 2: "Hard", 3: "Good", 4: "Easy" }, cls = { 1: "again", 2: "hard", 3: "good", 4: "easy" };
     const nextExam = upcomingExams()[0];
+    const thisCourse = (() => { const [k, id] = s.scope.split(":"); return k === "course" ? id : k === "unit" ? S.unit(id)?.courseId : k === "deck" ? S.deck(id)?.courseId : null; })();
+    const nextCourse = courseQueue(thisCourse)[0];
     if (!total) return `<div class="summary"><div class="summary__inner">
         <div class="summary__icon">${icon("check", 28)}</div>
         <h1 class="title">Nothing to study in ${esc(S.scopeLabel(s.scope))} right now</h1>
@@ -794,7 +803,7 @@
           </ul></section>
         </div>
         ${prototypeNote("Scheduling uses FSRS-5 with its default parameters and Anki-style learning steps (1m, 10m), the same model modern Anki offers.")}
-        <div class="stack-h stack-h--center"><a class="btn btn--primary btn--lg" href="#/home" data-action="session-done">Back to Home</a>${later ? `<button class="btn btn--secondary btn--lg" data-action="session-continue">${icon("refresh", 16)}Keep going</button>` : ""}</div>
+        <div class="stack-h stack-h--center">${nextCourse ? `<a class="btn btn--primary btn--lg" href="#/study/course-${nextCourse.c.id}" data-action="session-done">${icon("play", 16)}Next: ${esc(nextCourse.c.name)} · ${nextCourse.n.total}</a><a class="btn btn--ghost btn--lg" href="#/home" data-action="session-done">Back to Home</a>` : `<a class="btn btn--primary btn--lg" href="#/home" data-action="session-done">Back to Home</a>`}${later ? `<button class="btn btn--secondary btn--lg" data-action="session-continue">${icon("refresh", 16)}Keep going</button>` : ""}</div>
       </div></div>`;
   }
 
@@ -1436,7 +1445,12 @@
   const brandMark = () => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="13" height="16" rx="3" fill="currentColor" opacity=".35"/><rect x="8" y="3" width="13" height="16" rx="3" fill="currentColor"/><path d="m12 11 2 2 3.5-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   const TITLES = { home: "Home", library: "My Library", course: "Course", collection: "Collection", builder: "Card editor", study: "Study", quiz: "Practice quiz", exams: "Exams", insights: "Insights" };
   function render() {
-    const r = parseRoute(), view = $("#view");
+    let r = parseRoute();
+    if ((r.name === "study" || r.name === "quiz") && r.id && (r.id === "all" || r.id.startsWith("semester-"))) {
+      // Reviews never mix courses: send mixed scopes to the course picker.
+      currentRoute = "#/study"; try { history.replaceState(null, "", currentRoute); } catch { /* sandboxed */ } r = parseRoute();
+    }
+    const view = $("#view");
     const focus = (r.name === "study" && r.id) || (r.name === "quiz" && state.quiz && state.quiz.param === r.id && state.quiz.stage !== "setup");
     document.body.classList.toggle("is-focus-mode", !!focus);
     let html;

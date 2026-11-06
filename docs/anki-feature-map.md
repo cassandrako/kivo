@@ -9,7 +9,7 @@ What Anki does, and where Kivo stands on each feature. Kivo's core is Anki's: no
 | Anki | Kivo | Status |
 |---|---|---|
 | Decks and subdecks (`Parent::Child`) | Semester → Course → Unit → Collection. Each level is a "deck" you can open and study. | ✅ |
-| Study a parent deck to include its subdecks | **Study semester**, **Study course**, **Study unit** or **Study** a single collection | ✅ |
+| Study a parent deck to include its subdecks | **Study course**, **Study unit** or **Study** a single collection. Never across courses: there's no mixed “study everything” and no studying a whole semester. | ✅ |
 | Deck list with New / Learn / Due counts | Study page tree with the same three counts at every level | ✅ |
 | Create, rename, delete and move decks | Create, rename and delete semesters, courses, units and collections; move a collection by changing its course or unit | ✅ |
 | (no equivalent) | Archive a semester to tidy the library; its cards keep coming up for review unless you pause them | ✅ |

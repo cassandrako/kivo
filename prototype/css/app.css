@@ -997,3 +997,8 @@ a.exam:hover { background: var(--color-surface-muted); }
 }
 .field input[type="checkbox"], .field input[type="radio"] { width: auto; padding: 0; border: 0; box-shadow: none; flex: none; }
 .radio-card > input { margin-top: 3px; }
+.hero__sources--courses { grid-template-columns: 1fr; }
+.hero__sources--courses a { padding-block: 8px; }
+.hero__sources--courses .hero__source-name { display: flex; flex-direction: column; }
+.hero__sources--courses .hero__source-name small.caption { font-size: 11.5px; }
+.hero__source-go { display: inline-flex; align-items: center; gap: 4px; font: var(--text-label); color: var(--color-accent-text); margin-left: var(--space-2); }

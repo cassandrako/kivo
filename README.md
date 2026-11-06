@@ -11,6 +11,7 @@ Kivo is a study platform for healthcare students. It keeps Anki's spaced-repetit
 | `prototype/` | Clickable, responsive prototype (HTML/CSS/JS, no build step). Desktop sidebar layout; iOS-style tab bar and bottom sheets at phone width. |
 | `design-tokens/kivo.tokens.json` | Platform-neutral tokens (W3C format) for web CSS and iOS SwiftUI. |
 | `docs/product-strategy.md` | Problem, positioning vs. Anki / Quizlet / AI tools, design principles, MVP scope. |
+| `docs/anki-feature-map.md` | Every Anki feature and its status in Kivo: built, planned, needs accounts, or left out on purpose. |
 | `docs/platform-strategy.md` | How web and iOS split responsibilities and share one design system. |
 | Figma | [Kivo — Design System & Prototype](https://www.figma.com/design/EWbhUpaJ8ug7mXeGStYlli) — foundations, components, Web · Desktop and iOS screens. |
 
@@ -22,16 +23,15 @@ cd prototype && python3 -m http.server 4173
 
 Then open http://localhost:4173. To check the phone layout, use a narrow window or your browser's device emulation.
 
-### Try the main journey
+### Try it
 
-1. **Home**: 30 cards due → **Start Reviewing**.
-2. **Session**: press `Space` to reveal. On multi-part answers, tick the key points you recalled; Kivo suggests a rating. Rate with `1`–`4` (`F` flags a card, `P` pauses, `Esc` exits).
-3. Finish to see **what needs more practice**, then return Home ("All caught up").
-4. **My Library → Head & Neck Anatomy → Import shared collection**: the name suggestion (`HN_Lec4_Final` → *Head & Neck Anatomy / Lecture 04 / Cranial Nerves*) and the duplicate warning.
-5. **Cranial Nerves → Practice quiz**: multiple choice and true/false generated only from your cards. Each answer links to its source card, and missed questions go back into spaced review.
-6. **Cranial Nerves → Edit**: the template builder (Basic, Cloze, Image occlusion, Multiple choice, Clinical vignette) with live preview.
-7. **Share**: recipients always get their own copy. **Review suggestions** shows source updates you accept or skip card by card.
-8. **Exams → Import from calendar → Try a sample Canvas calendar**: Kivo picks out quizzes, exams and practicals, skips everything else, matches each to a course and flags ones you already added. You can also add exams by hand or upload your own `.ics` export.
-9. **Insights**.
+1. **Home → Start Reviewing.** Press `Space` to show the answer and `1`–`4` to rate (Space again = Good). On multi-part answers, tick the key points you recalled. `E` edits the card, `F` flags, `−` buries, `@` suspends, `⌘Z` undoes.
+2. **Study** shows every semester, course, unit and collection with New / Learn / Due counts, like Anki’s deck list. Study at any level.
+3. **My Library → New semester / New course / New collection.** Build your own Semester → Course → Unit → Collection structure. Archive a finished semester from its ⋯ menu.
+4. **Add card** (sidebar, or `A`) for Basic, Basic + reversed, Cloze or Image occlusion, with a live preview. Click any card in a collection to edit it.
+5. **Import** a text/CSV export, or try the sample `HN_Lec4_Final.txt`: Kivo suggests where it belongs and skips duplicates.
+6. **Practice quiz** from any collection, unit or course: multiple choice and true/false built from your own cards.
+7. **Exams → Import from calendar** (Canvas or Google `.ics`), and **Insights**.
+8. A course’s ⋯ menu → **Review settings**: daily limits, learning steps, desired retention, leeches.
 
-All data is local sample content. Scheduling uses a simplified prototype model, not a production algorithm.
+Your data is saved in your browser. Scheduling is FSRS-5 (the algorithm modern Anki uses) with Anki-style learning steps. **Reset sample data** at the bottom of the Library restores the demo content. See `docs/anki-feature-map.md` for which Anki features are built, planned or left out.

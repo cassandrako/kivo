@@ -36,9 +36,9 @@ window.KivoOnboarding = (() => {
     optometry: ["Pennsylvania College of Optometry (Salus University)", "SUNY College of Optometry", "New England College of Optometry", "UC Berkeley Herbert Wertheim School of Optometry", "University of Waterloo School of Optometry"],
     medicine: ["Perelman School of Medicine at Penn", "Columbia Vagelos College of Physicians and Surgeons", "University of Toronto Temerty Faculty of Medicine", "Philadelphia College of Osteopathic Medicine"],
     dentistry: ["Columbia College of Dental Medicine", "Penn Dental Medicine", "NYU College of Dentistry", "University of Toronto Faculty of Dentistry"],
-    prehealth: ["University of Pennsylvania", "Columbia University", "University of Toronto", "Rutgers University"],
+    prehealth: ["University of Toronto", "University of Pennsylvania", "Columbia University", "McMaster University"],
   };
-  const YEARS = { optometry: ["OD1", "OD2", "OD3", "OD4"], medicine: ["MS1", "MS2", "MS3", "MS4"], dentistry: ["D1", "D2", "D3", "D4"], prehealth: ["Freshman", "Sophomore", "Junior", "Senior", "Post-bacc", "Gap year"] };
+  const YEARS = { optometry: ["OD1", "OD2", "OD3", "OD4"], medicine: ["MS1", "MS2", "MS3", "MS4"], dentistry: ["D1", "D2", "D3", "D4"], prehealth: ["1st year", "2nd year", "3rd year", "4th year", "Post-bacc", "Gap year"] };
   const BOARDS = { optometry: ["NBEO Part I", "NBEO Part II", "NBEO Part III"], medicine: ["USMLE Step 1", "USMLE Step 2 CK", "COMLEX Level 1", "COMLEX Level 2"], dentistry: ["INBDE"] };
   const TARGETS = [["MD", "Medicine (MD/DO)", "MCAT"], ["OD", "Optometry (OD)", "OAT"], ["DDS", "Dentistry (DDS/DMD)", "DAT"], ["PA", "Physician assistant (PA)", "GRE or PA-CAT"], ["Other", "Not sure yet", ""]];
   const OTHER_COURSES = ["Anatomy & Physiology", "Pharmacology", "Pathophysiology", "Microbiology"];
@@ -56,16 +56,12 @@ window.KivoOnboarding = (() => {
   function hash(s) { let h = 5381; for (const ch of s) h = ((h << 5) + h + ch.charCodeAt(0)) | 0; return String(h >>> 0); }
 
   /* ---------- rendering --------------------------------------------------- */
-  function shell(inner, { aside } = {}) {
+  function shell(inner) {
     const stepIdx = STEPS.indexOf(ob.screen);
     return `<div class="ob">
-      <aside class="ob__brand">
-        <div class="ob__brand-top">${fox(40)}<span class="ob__word">kivo.</span></div>
-        <div class="ob__brand-mid">${fox(132)}<p class="ob__tag">a little smarter, every day.</p>${aside || `<p class="ob__pitch">Anki’s spaced repetition, built around your courses and exams. One course at a time.</p>`}</div>
-        <p class="ob__fine">Prototype: accounts are stored only in this browser.</p>
-      </aside>
+      <header class="ob__top">${fox(28)}<span class="ob__word">kivo.</span></header>
       <main class="ob__main" id="ob-main">
-        ${stepIdx >= 0 ? `<div class="ob__progress"><button class="link link--muted" data-ob="back">${icon("chevronLeft", 16)}Back</button><span class="caption">Step ${stepIdx + 1} of ${STEPS.length}</span></div><div class="progress progress--thin"><span style="width:${((stepIdx + 1) / STEPS.length) * 100}%"></span></div>` : ""}
+        ${stepIdx >= 0 ? `<div class="ob__progress"><button class="link link--muted" data-ob="back">${icon("chevronLeft", 16)}Back</button><span class="caption">${stepIdx + 1} of ${STEPS.length}</span></div><div class="progress progress--thin"><span style="width:${((stepIdx + 1) / STEPS.length) * 100}%"></span></div>` : ""}
         <div class="ob__panel">${inner}</div>
       </main>
     </div>`;
@@ -80,7 +76,7 @@ window.KivoOnboarding = (() => {
     switch (ob.screen) {
       case "welcome": return shell(`
         <h1 class="ob__title">Welcome to kivo.</h1>
-        <p class="ob__lede">Make cards from your lectures, review them on Anki’s schedule, and walk into every exam ready.</p>
+        <p class="ob__lede">a little smarter, every day.</p>
         <div class="ob__auth">
           <button class="btn btn--apple btn--lg" data-ob="provider" data-p="apple">${APPLE}Continue with Apple</button>
           <button class="btn btn--google btn--lg" data-ob="provider" data-p="google">${GOOGLE}Continue with Google</button>
@@ -89,8 +85,8 @@ window.KivoOnboarding = (() => {
         </div>
         <p class="ob__switch">Already have an account? <button class="link" data-ob="go" data-to="login">Log in</button></p>
         <section class="ob__personas" aria-labelledby="persona-title">
-          <h2 id="persona-title" class="overline">Prototype: walk through as a student</h2>
-          <div class="persona-grid">${Object.values(P).map((t) => `<button class="persona" data-ob="persona" data-id="${t.id}"><span class="avatar avatar--md">${esc(t.user.initials)}</span><span><strong>${esc(t.user.fullName)}</strong><small>${esc(t.user.role || "")}</small><small>${esc(t.profile.school)}</small></span></button>`).join("")}</div>
+          <h2 id="persona-title" class="caption">Prototype: try it as</h2>
+          <div class="persona-list">${Object.values(P).map((t) => `<button class="persona" data-ob="persona" data-id="${t.id}"><strong>${esc(t.user.fullName)}</strong><small>${esc(t.user.role || "")}</small></button>`).join("")}</div>
         </section>`);
       case "login": return shell(`
         <h1 class="ob__title">Log in</h1>
@@ -130,7 +126,7 @@ window.KivoOnboarding = (() => {
       case "role": return shell(`
         <h1 class="ob__title">What are you studying, ${esc(a.first)}?</h1>
         <p class="ob__lede">Kivo sets up your semester, courses and exam folders to match your program.</p>
-        <div class="role-grid" role="radiogroup" aria-label="Your program">${ROLES.map((r) => `<button class="role ${a.role === r.id ? "is-selected" : ""}" role="radio" aria-checked="${a.role === r.id}" data-ob="role" data-id="${r.id}">${icon(r.icon, 20)}<strong>${r.label}</strong><small>${r.sub}</small></button>`).join("")}</div>
+        <div class="role-grid" role="radiogroup" aria-label="Your program">${ROLES.map((r) => `<button class="role ${a.role === r.id ? "is-selected" : ""}" role="radio" aria-checked="${a.role === r.id}" data-ob="role" data-id="${r.id}"><strong>${r.label}</strong><small>${r.sub}</small></button>`).join("")}</div>
         ${err()}${actions("Continue")}`);
       case "details": return shell(`<h1 class="ob__title">${detailsTitle()}</h1><form class="ob__form" data-form="details" novalidate>${detailsFields()}${err()}${actions("Continue")}</form>`);
       case "courses": {
@@ -171,16 +167,15 @@ window.KivoOnboarding = (() => {
       }
       case "done": {
         const acct = ob.acct;
-        return shell(`<div class="ob__done">${fox(72)}
+        return shell(`<div class="ob__done">
           <h1 class="ob__title">You’re all set, ${esc(acct.first)}.</h1>
           <ul class="done-list">
-            <li>${icon("folder", 16)}<span><strong>${esc(ob.semester)}</strong> with ${ob.doneCourses} ${ob.doneCourses === 1 ? "course" : "courses"}</span></li>
-            <li>${icon("calendar", 16)}<span>${ob.doneExams ? `${ob.doneExams} upcoming ${ob.doneExams === 1 ? "exam" : "exams"}${ob.firstExam ? `, starting with ${esc(ob.firstExam)}` : ""}` : "No exams yet. Add them from Exams or import your calendar."}</span></li>
-            <li>${icon("layers", 16)}<span>${ob.doneCards ? `${ob.doneCards} sample cards ready to review` : "Empty courses, ready for your first lecture"}</span></li>
-            <li>${icon("clock", 16)}<span>${ob.pace} new cards a day per course${ob.reminder ? ` · phone reminder at ${esc(({ "07:30": "7:30 AM", "12:00": "12:00 PM", "19:00": "7:00 PM", "21:00": "9:00 PM" })[ob.reminder] || ob.reminder)}` : ""}</span></li>
+            <li><span><strong>${esc(ob.semester)}</strong> with ${ob.doneCourses} ${ob.doneCourses === 1 ? "course" : "courses"}</span></li>
+            <li><span>${ob.doneExams ? `${ob.doneExams} upcoming ${ob.doneExams === 1 ? "exam" : "exams"}${ob.firstExam ? `, starting with ${esc(ob.firstExam)}` : ""}` : "No exams yet. Add them from Exams or import your calendar."}</span></li>
+            <li><span>${ob.doneCards ? `${ob.doneCards} sample cards ready to review` : "Empty courses, ready for your first lecture"}</span></li>
+            <li><span>${ob.pace} new cards a day per course${ob.reminder ? ` · phone reminder at ${esc(({ "07:30": "7:30 AM", "12:00": "12:00 PM", "19:00": "7:00 PM", "21:00": "9:00 PM" })[ob.reminder] || ob.reminder)}` : ""}</span></li>
           </ul>
-          <div class="ob__actions ob__actions--center"><button class="btn btn--primary btn--lg" data-ob="enter">${ob.doneCards ? "Start studying" : "Go to my library"}</button></div></div>`,
-          { aside: `<p class="ob__pitch">${esc(acct.school || "")}</p><p class="ob__pitch">${esc(acct.programLabel)}</p>` });
+          <div class="ob__actions"><button class="btn btn--primary btn--lg" data-ob="enter">${ob.doneCards ? "Start studying" : "Go to my library"}</button></div></div>`);
       }
     }
     return "";
@@ -196,7 +191,7 @@ window.KivoOnboarding = (() => {
         <div class="field-row">${field("ob-grad", "Graduation year", a.gradYear, { type: "number", placeholder: "2030" })}${select("ob-boards", "Next board exam", a.boards || boards[0], [...boards, "Not sure yet"])}</div>`;
     }
     if (r === "prehealth") return `${field("ob-school", "College or university", a.school, { list: SCHOOLS.prehealth })}
-      <div class="field-row">${field("ob-major", "Major", a.major, { placeholder: "Biology" })}${select("ob-year", "Year", a.year || "Junior", YEARS.prehealth)}</div>
+      <div class="field-row">${field("ob-major", "Major", a.major, { placeholder: "Biology" })}${select("ob-year", "Year", a.year || "3rd year", YEARS.prehealth)}</div>
       ${select("ob-target", "Applying to", a.target, TARGETS.map(([v, l]) => [v, l]))}`;
     return `${field("ob-program", r === "working" ? "Your role" : "Program", a.program, { placeholder: r === "working" ? "e.g. PGY-1 resident, optometrist, clinical instructor" : "e.g. PharmD, BSN nursing, PA, DPT" })}
       ${field("ob-school", r === "working" ? "Hospital, practice or school" : "School", a.school)}

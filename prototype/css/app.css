@@ -1032,19 +1032,13 @@ a.exam:hover { background: var(--color-surface-muted); }
    Onboarding: sign up, log in, program setup
    ====================================================================== */
 body.is-onboarding .app { display: block; }
-.ob { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(320px, 40%) 1fr; background: var(--color-bg); }
-.ob__brand { position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-8) var(--space-10); background: var(--color-surface-accent); }
-.ob__brand-top { display: flex; align-items: center; gap: var(--space-2); }
-.ob__word { font: 700 22px/1 var(--font-sans); letter-spacing: -0.03em; color: #463A6E; }
-:root[data-theme="dark"] .ob__word { color: var(--color-accent-text); }
-.ob__brand-mid { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-3); }
-.ob__tag { font: 500 20px/28px var(--font-sans); color: var(--color-accent-text); }
-.ob__pitch { font: var(--text-body); color: var(--color-text-secondary); max-width: 34ch; }
-.ob__fine { font: var(--text-caption); color: var(--color-text-tertiary); }
-.ob__main { display: flex; flex-direction: column; padding: var(--space-8) var(--space-10); padding-left: max(var(--space-10), env(safe-area-inset-left, 0px)); padding-right: max(var(--space-10), env(safe-area-inset-right, 0px)); }
-.ob__progress { display: flex; justify-content: space-between; align-items: center; max-width: 560px; width: 100%; margin: 0 auto var(--space-2); }
-.ob__main > .progress { max-width: 560px; width: 100%; margin: 0 auto; }
-.ob__panel { max-width: 560px; width: 100%; margin: var(--space-10) auto 0; display: flex; flex-direction: column; gap: var(--space-5); animation: page-in var(--duration-slow) var(--ease); }
+.ob { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--color-bg); }
+.ob__top { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-6) var(--space-8); padding-top: max(var(--space-6), env(safe-area-inset-top, 0px)); }
+.ob__word { font: 700 20px/1 var(--font-sans); letter-spacing: -0.03em; color: var(--color-text-primary); }
+.ob__main { flex: 1; display: flex; flex-direction: column; padding: var(--space-4) var(--space-10) var(--space-12); padding-left: max(var(--space-10), env(safe-area-inset-left, 0px)); padding-right: max(var(--space-10), env(safe-area-inset-right, 0px)); }
+.ob__progress { display: flex; justify-content: space-between; align-items: center; max-width: 480px; width: 100%; margin: 0 auto var(--space-2); }
+.ob__main > .progress { max-width: 480px; width: 100%; margin: 0 auto; }
+.ob__panel { max-width: 480px; width: 100%; margin: var(--space-8) auto 0; display: flex; flex-direction: column; gap: var(--space-5); animation: page-in var(--duration-slow) var(--ease); }
 .ob__title { font: 700 28px/36px var(--font-sans); letter-spacing: -0.02em; text-wrap: balance; }
 .ob__lede { color: var(--color-text-secondary); margin-top: calc(var(--space-3) * -1); }
 .ob__auth { display: flex; flex-direction: column; gap: var(--space-2); }
@@ -1059,20 +1053,18 @@ body.is-onboarding .app { display: block; }
 .ob__form .field { margin: 0; }
 .ob__actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-2); flex-wrap: wrap; }
 .ob__actions--center { justify-content: center; }
-.ob__personas { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); padding-top: var(--space-5); border-top: 1px dashed var(--color-border-strong); }
-.persona-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-.persona { display: flex; gap: var(--space-3); align-items: flex-start; text-align: left; padding: var(--space-3); border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: var(--color-surface); }
-.persona:hover { border-color: var(--color-accent); background: var(--color-accent-subtle); }
-.persona > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.ob__personas { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-6); padding-top: var(--space-5); border-top: 1px solid var(--color-border); }
+.persona-list { display: flex; flex-direction: column; }
+.persona { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; text-align: left; padding: 10px var(--space-2); border-radius: var(--radius-md); }
+.persona:hover { background: var(--color-surface-muted); }
 .persona strong { font: var(--text-label); }
-.persona small { font: var(--text-caption); color: var(--color-text-secondary); }
+.persona small { font: var(--text-caption); color: var(--color-text-tertiary); }
 .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .role { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left; padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--color-border-strong); background: var(--color-surface); }
-.role .icon { color: var(--color-accent-text); margin-bottom: var(--space-1); }
 .role strong { font: var(--text-subhead); }
 .role small { font: var(--text-caption); color: var(--color-text-secondary); }
 .role:hover { border-color: var(--color-accent); }
-.role.is-selected { border-color: var(--color-accent); background: var(--color-accent-subtle); box-shadow: 0 0 0 3px var(--color-accent-subtle); }
+.role.is-selected { border-color: var(--color-accent); background: var(--color-accent-subtle); }
 .chip-wall { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .chip-wall .chip-check span em { font-style: normal; font: var(--text-caption); color: var(--color-sage-text); margin-left: 4px; }
 .add-course { display: flex; gap: var(--space-2); }
@@ -1088,10 +1080,10 @@ body.is-onboarding .app { display: block; }
 .sso__acct { display: flex; gap: var(--space-3); align-items: center; width: 100%; padding: 10px var(--space-3); text-align: left; border-top: 1px solid var(--color-border); font: var(--text-body); }
 .sso__accounts li:first-child .sso__acct { border-top: 0; }
 .sso__acct:hover, .sso__acct.is-picked { background: var(--color-accent-subtle); }
-.ob__done { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-4); }
-.done-list { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; text-align: left; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface); border: 1px solid var(--color-border); }
-.done-list li { display: flex; gap: var(--space-3); align-items: flex-start; font: var(--text-body); }
-.done-list .icon { color: var(--color-accent-text); margin-top: 3px; }
+.ob__done { display: flex; flex-direction: column; gap: var(--space-4); }
+.done-list { display: flex; flex-direction: column; width: 100%; }
+.done-list li { padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); font: var(--text-body); color: var(--color-text-secondary); }
+.done-list li:last-child { border-bottom: 0; }
 
 /* New menu + account menu */
 .menu--new > summary { list-style: none; gap: 6px; }
@@ -1113,12 +1105,10 @@ body.is-onboarding .app { display: block; }
 .appbar .avatar { pointer-events: none; }
 
 @media (max-width: 900px) {
-  .ob { grid-template-columns: 1fr; }
-  .ob__brand { position: static; height: auto; padding: var(--space-4) var(--space-4); padding-top: max(var(--space-4), env(safe-area-inset-top, 0px)); flex-direction: row; align-items: center; }
-  .ob__brand-mid, .ob__fine { display: none; }
+  .ob__top { padding: var(--space-4); padding-top: max(var(--space-4), env(safe-area-inset-top, 0px)); }
   .ob__main { padding: var(--space-5) var(--space-4) var(--space-10); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .ob__panel { margin-top: var(--space-5); }
-  .persona-grid, .role-grid { grid-template-columns: 1fr; }
+  .role-grid { grid-template-columns: 1fr; }
   .pace-grid { grid-template-columns: 1fr; }
   .exam-row { grid-template-columns: 1fr 1fr; }
   .exam-row__course { grid-column: 1 / -1; }

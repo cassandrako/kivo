@@ -190,7 +190,7 @@
     const all = S.counts("all");
     const exams = upcomingExams().slice(0, 3), next = exams[0];
     const queue = courseQueue(), first = queue[0];
-    const recent = S.db.decks.filter((d) => !isArchived(d.courseId)).sort((a, b) => (S.lastStudied([b.id]) || b.modified) - (S.lastStudied([a.id]) || a.modified)).slice(0, 3);
+    const recent = S.db.decks.filter((d) => !isArchived(d.courseId)).sort((a, b) => (S.lastStudied([b.id]) || b.modified) - (S.lastStudied([a.id]) || a.modified)).slice(0, 4);
     const reviewedToday = S.db.log.filter((l) => l.ts >= TODAY).length;
     const tomorrow = S.forecast(2)[1];
     return `
@@ -220,29 +220,13 @@
               <div class="exam__body"><p class="exam__title">${esc(e.title)} · ${esc(c?.name || "")}</p><p class="caption">${fmtDate(e.date)}${cov ? ` · ${pct(cov.ratio)} of exam cards studied at least once` : " · no collections linked"}</p>${cov ? progressBar(cov.ratio, `${e.title} coverage`) : ""}</div></a></li>`; }).join("")}</ul>`
             : `<div class="exams-empty"><p class="caption">No exams yet. Add your exam dates, or import them from Canvas or Google Calendar.</p><div class="stack-h"><button class="btn btn--secondary btn--sm" data-action="open-exam-form">${icon("plus", 14)}Add exam</button><button class="btn btn--ghost btn--sm" data-action="open-calendar-import">${icon("upload", 14)}Import</button></div></div>`}
         </section>
-        <section class="home-recent" aria-labelledby="recent-title">
-          <div class="section-head"><h2 id="recent-title" class="heading">Jump back in</h2><a class="link" href="#/library">View library ${icon("arrowRight", 14)}</a></div>
-          ${recent.length ? `<div class="collection-grid">${recent.map(collectionCard).join("")}</div>` : emptyState("No collections yet", "Create a course and a collection to start adding cards.", `<button class="btn btn--primary" data-action="open-course-form">New course</button>`, "library")}
-        </section>
-        <section class="card suggestions" aria-labelledby="next-title">
-          <div class="card__head"><h2 id="next-title" class="heading">Suggested next</h2></div>
-          <ul class="suggestion-list">${suggestions().map((s) => `<li><a href="${s.href}">${icon(s.icon, 18)}<span><strong>${esc(s.title)}</strong><small>${esc(s.sub)}</small></span>${icon("chevronRight", 16)}</a></li>`).join("")}</ul>
+        <section class="card home-recent" aria-labelledby="recent-title">
+          <div class="card__head"><h2 id="recent-title" class="heading">Jump back in</h2><a class="link" href="#/library">Library</a></div>
+          ${recent.length ? `<ul class="recent-list">${recent.map((d) => { const c = S.course(d.courseId), n = S.counts("deck:" + d.id); return `<li><a href="#/collection/${d.id}"><span class="dot dot--${c?.hue}"></span><span class="recent-list__main"><strong>${esc(d.title)}</strong><small>${esc(c?.name || "")} · ${esc(relTime(S.lastStudied([d.id])))}</small></span>${n.total ? `<span class="badge badge--warning">${n.total}</span>` : `<span class="badge badge--success">${icon("check", 12)}</span>`}</a></li>`; }).join("")}</ul>`
+            : `<p class="caption">No collections yet. <button class="link" data-action="open-course-form">Create a course</button> to start.</p>`}
         </section>
       </div>`;
   }
-  function suggestions() {
-    const out = [];
-    const ret = activeCourses().map((c) => ({ c, st: S.deckStats(S.scopeDeckIds("course:" + c.id)) })).filter((x) => x.st.retention != null).sort((a, b) => a.st.retention - b.st.retention)[0];
-    if (ret) out.push({ icon: "target", href: `#/study/course-${ret.c.id}`, title: `Review ${ret.c.name}`, sub: `Lowest estimated retention (${pct(ret.st.retention)})` });
-    const ex = upcomingExams()[0];
-    if (ex) { const newN = (ex.collections || []).reduce((n, id) => n + S.deckStats([id]).new, 0); if (newN) out.push({ icon: "layers", href: `#/study/${ex.collections[0]}`, title: `Learn ${plural(newN, "new card")} for ${ex.title}`, sub: `${S.course(ex.courseId)?.name || ""} · ${daysLabel(daysUntil(ex.date))}` }); }
-    const leech = S.db.notes.filter((n) => n.tags.includes("leech")).length;
-    if (leech) out.push({ icon: "alert", href: "#/library", title: `${plural(leech, "card")} keep slipping`, sub: "Tagged as leeches. Try rewording or splitting them." });
-    if (S.deck("hna-cn")) out.push({ icon: "refresh", href: "#/collection/hna-cn", title: "2 suggested updates for Cranial Nerves", sub: "From Priya Shah’s source · you choose what to accept" });
-    out.push({ icon: "plus", href: "#/builder", title: "Add cards from today’s lecture", sub: "Basic, reversed, cloze or image occlusion" });
-    return out.slice(0, 3);
-  }
-
   /* ======================================================================
      LIBRARY → SEMESTER → COURSE → UNIT → COLLECTION
      ====================================================================== */

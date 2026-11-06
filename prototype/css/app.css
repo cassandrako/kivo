@@ -1002,3 +1002,24 @@ a.exam:hover { background: var(--color-surface-muted); }
 .hero__sources--courses .hero__source-name { display: flex; flex-direction: column; }
 .hero__sources--courses .hero__source-name small.caption { font-size: 11.5px; }
 .hero__source-go { display: inline-flex; align-items: center; gap: 4px; font: var(--text-label); color: var(--color-accent-text); margin-left: var(--space-2); }
+
+/* Compact home: hero left; exams + jump back in stacked right */
+.page-header--home { margin-bottom: var(--space-4); }
+.page-header--home .display { font-size: 28px; line-height: 36px; }
+.page-header--home .lede { margin-top: 2px; }
+.home-grid { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); grid-template-areas: "hero exams" "hero recent"; grid-template-rows: auto 1fr; gap: var(--space-4); }
+.home-grid .hero { gap: var(--space-4); padding: var(--space-5); }
+.home-grid .hero__actions { margin-top: var(--space-4); }
+.home-grid .card__head { margin-bottom: var(--space-3); }
+.home-grid .exams { padding: var(--space-4) var(--space-5); }
+.home-grid .exam-list { gap: var(--space-3); }
+.home-grid .home-recent { padding: var(--space-4) var(--space-5); }
+.recent-list { display: flex; flex-direction: column; margin: 0 calc(var(--space-2) * -1); }
+.recent-list a { display: flex; align-items: center; gap: var(--space-3); padding: 7px var(--space-2); border-radius: var(--radius-md); }
+.recent-list a:hover { background: var(--color-surface-muted); }
+.recent-list__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.recent-list__main strong { font: var(--text-label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-list__main small { font: var(--text-caption); color: var(--color-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero__sources--courses a { padding-block: 5px; }
+@media (max-width: 980px) { .home-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "hero" "exams" "recent"; grid-template-rows: none; } }
+@media (max-width: 760px) { .home-grid .hero__actions { flex-direction: column; align-items: stretch; } .home-grid .hero__actions .btn { width: 100%; flex: none; } }

@@ -2010,7 +2010,7 @@
     });
   }
   // Read-only hook for automated tests.
-  window.__kivoDebug = { builder: () => state.builder };
+  window.__kivoDebug = { builder: () => state.builder, quiz: () => state.quiz };
   function enterApp(acct) {
     ME = acct;
     S.useAccount(acct); S.load(blankTemplate()); cleanSamples();
